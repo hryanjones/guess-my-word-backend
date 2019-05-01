@@ -1,0 +1,28 @@
+{
+  "name": "guess-my-word-backend",
+  "version": "1.0.0",
+  "description": "A backend to https://github.com/hryanjones/guess-my-word to store a leaderboard.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hryanjones/guess-my-word-backend.git"
+  },
+  "keywords": [
+    "express",
+    "server",
+    "word",
+    "puzzle"
+  ],
+  "author": "H. Ryan Jones (hryanjones@gmail.com)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/hryanjones/guess-my-word-backend/issues"
+  },
+  "homepage": "https://github.com/hryanjones/guess-my-word-backend#readme",
+  "dependencies": {
+    "express": "^4.16.4"
+  }
+}
