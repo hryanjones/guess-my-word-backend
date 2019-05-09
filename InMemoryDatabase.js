@@ -11,24 +11,25 @@ function addLeader({
     date,
     wordlist,
     name,
-    guesses,
-    time,
-    submitTime
+    guesses: bareGuesses,
+    bareTime,
+    submitTime,
 }) {
-    time = parseInt(time);
-    guesses = (guesses || '').split(',');
+    const time = parseInt(bareTime, 10);
+    const guesses = (bareGuesses || '').split(',');
 
-    let invalidReason = getInvalidReason(date, wordlist, name, time, guesses);
+    const invalidReason = getInvalidReason(date, wordlist, name, time, guesses);
 
-    if (invalidReason) return invalidReason
+    if (invalidReason) return invalidReason;
 
     const leaders = getLeadersForKeys(date, wordlist)
-    if (leaders[name]) return `Sorry, "${name}" is already taken.`
+    if (leaders[name]) return `Sorry, "${name}" is already taken.`;
     leaders[name] = {
         submitTime,
         time,
         guesses,
     };
+    return '';
 }
 
 function getLeadersForKeys(date, list, convertToNumberOfGuesses = false) {
@@ -60,4 +61,3 @@ function convertLeadersToNumberOfGuesses(leaders) {
 }
 
 module.exports = InMemoryDatabase;
-
