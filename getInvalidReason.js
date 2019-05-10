@@ -1,6 +1,6 @@
 const timezonelessDateMatcher = /^2[0-1][0-9]{2}-[0-1][0-9]-[0-9]{2}$/;
 const acceptableLists = ['normal', 'hard']
-const wordMatcher = /^[a-z]{2,12}$/; // FIXME get actual longest word from frontend
+const wordMatcher = /^[a-z]{2,15}$/;
 const maxNameLength = 128;
 const maxNumberOfGuesses = 200;
 const maxTime = 24 * 60 * 60 * 1000; // max time is 24 hours

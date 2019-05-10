@@ -12,7 +12,7 @@ function addLeader({
     wordlist,
     name,
     guesses: bareGuesses,
-    bareTime,
+    time: bareTime,
     submitTime,
 }) {
     const time = parseInt(bareTime, 10);

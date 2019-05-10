@@ -44,7 +44,7 @@ curl -s -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=b
 # Test storing data 
 
 curl -s -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=blue,either&name=goobley&time=2000" > /dev/null
-curl -s -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=acrid,whatever,either&name=blerg&time=30000" > /dev/null
+curl -s -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=acrid,whatever,either&name=%22blerg%22&time=30000" > /dev/null
 curl -s -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=either&name=mergen&time=100" > /dev/null
 curl -s -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=cry,whimper,fly,either&name=purg&time=40" > /dev/null
 curl -s -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=barf,map,food,name,either&name=Looben%20Doo&time=5000" > /dev/null
@@ -59,4 +59,15 @@ curl -s -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=e
     | grep -q "is already taken" || error_exit "duplicate name 400"
 
 
+# Test backup file
 
+ls backupLeaderboards/2019-04-30_normal.csv > /dev/null || error_exit "didn't create backup file"
+
+head -n 1 backupLeaderboards/2019-04-30_normal.csv \
+    | grep -q "name,submitTime,timeInMilliSeconds,guesses" || error_exit "backup file header isn't correct"
+
+grep -E ',[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{3}Z,[0-9]+,"[a-z,]+"$' backupLeaderboards/2019-04-30_normal.csv | wc -l | grep -qE "^8$" || error_exit "expected different number of entries in backup file"
+
+# Cleanup
+## remove backup file
+rm backupLeaderboards/2019-04-30_normal.csv
