@@ -2,6 +2,8 @@ const getInvalidReason = require('./getInvalidReason');
 
 const leadersByDateAndListAndName = {};
 
+const MAX_NUMBER_OF_LEADERS_FOR_DAYS_WORD_LIST = 1000;
+
 const InMemoryDatabase = {
     addLeader,
     getLeadersForKeys,
@@ -18,17 +20,19 @@ function addLeader({
     const time = parseInt(bareTime, 10);
     const guesses = (bareGuesses || '').split(',');
 
-    const invalidReason = getInvalidReason(date, wordlist, name, time, guesses);
+    const invalidReason = getInvalidReason(date, wordlist, name, time, guesses)
+        || addLeaderToDatabase(date, wordlist, name, { submitTime, time, guesses });
 
-    if (invalidReason) return invalidReason;
+    return invalidReason;
+}
 
-    const leaders = getLeadersForKeys(date, wordlist)
+function addLeaderToDatabase(date, wordlist, name, data) {
+    const leaders = getLeadersForKeys(date, wordlist);
+    if (Object.keys(leaders).length >= MAX_NUMBER_OF_LEADERS_FOR_DAYS_WORD_LIST) {
+        return `Sorry, we only accept ${MAX_NUMBER_OF_LEADERS_FOR_DAYS_WORD_LIST} entries for the board in a day.`;
+    }
     if (leaders[name]) return `Sorry, "${name}" is already taken.`;
-    leaders[name] = {
-        submitTime,
-        time,
-        guesses,
-    };
+    leaders[name] = data;
     return '';
 }
 

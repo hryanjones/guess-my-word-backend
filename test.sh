@@ -51,7 +51,12 @@ curl -s -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=b
 # emoji in name the encoded character is 👍
 curl -s -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=blab,finger,put,shoot,blah,either&name=Mukilteo%F0%9F%91%8D&time=600" > /dev/null
 curl -s -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=blue,put,shoot,blah,whatever,fly,either&name=Dublin&time=70000" > /dev/null
-curl -s -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=acrid,whatever,finger,put,shoot,blah,eight,either&name=Foogey&time=800000" | jq
+
+## Test output is correct
+curl -s -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=acrid,whatever,finger,put,shoot,blah,eight,either&name=Foogey&time=800000" | \
+    sed -e 's/"submitTime":"[^"]*"/"submitTime":""/g' | \
+    tee /tmp/response.json | \
+    grep -q '{"goobley":{"submitTime":"","time":2000,"numberOfGuesses":2},"\\"blerg\\"":{"submitTime":"","time":30000,"numberOfGuesses":3},"mergen":{"submitTime":"","time":100,"numberOfGuesses":1},"purg":{"submitTime":"","time":40,"numberOfGuesses":4},"Looben Doo":{"submitTime":"","time":5000,"numberOfGuesses":5},"Mukilteo👍":{"submitTime":"","time":600,"numberOfGuesses":6},"Dublin":{"submitTime":"","time":70000,"numberOfGuesses":7},"Foogey":{"submitTime":"","time":800000,"numberOfGuesses":8}}' || error_exit "unexpected JSON response"
 
 # Test not duplicate users
 
@@ -59,7 +64,13 @@ curl -s -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=e
     | grep -q "is already taken" || error_exit "duplicate name 400"
 
 
-# Test backup file
+# Add leaders for a different day
+curl -s -X POST "localhost:8080/leaderboard/2019-05-01/wordlist/hard?guesses=superficial&name=mergen&time=100" > /dev/null
+curl -s -X POST "localhost:8080/leaderboard/2019-05-01/wordlist/hard?guesses=cry,whimper,fly,superficial&name=purg&time=40" > /dev/null
+curl -s -X POST "localhost:8080/leaderboard/2019-05-01/wordlist/hard?guesses=barf,map,food,name,superficial&name=Looben%20Doo&time=5000" > /dev/null
+
+
+# Test backup files
 
 ls backupLeaderboards/2019-04-30_normal.csv > /dev/null || error_exit "didn't create backup file"
 
@@ -68,6 +79,39 @@ head -n 1 backupLeaderboards/2019-04-30_normal.csv \
 
 grep -E ',[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{3}Z,[0-9]+,"[a-z,]+"$' backupLeaderboards/2019-04-30_normal.csv | wc -l | grep -qE "^8$" || error_exit "expected different number of entries in backup file"
 
+## other backup file
+head -n 1 backupLeaderboards/2019-05-01_hard.csv \
+    | grep -q "name,submitTime,timeInMilliSeconds,guesses" || error_exit "backup file header isn't correct"
+
+grep -E ',[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{3}Z,[0-9]+,"[a-z,]+"$' backupLeaderboards/2019-05-01_hard.csv | wc -l | grep -qE "^3$" || error_exit "expected different number of entries in 2nd backup file"
+
+
+# Recovering from backup files
+
+read -p "Stop the server, start it agan, then push enter to run recovery test"
+
+
+
+
+# Max number of leaders
+for LEADER in {4..999}; do
+    curl -s -X POST "localhost:8080/leaderboard/2019-05-01/wordlist/hard?guesses=barf,map,food,name,superficial&name=${LEADER}&time=5000" > /dev/null
+    if ! (( $LEADER % 200 )) ; then
+        echo "just sent leader ${LEADER}"
+    fi
+done
+
+## Last acceptable leader should have normal output
+curl -s -X POST "localhost:8080/leaderboard/2019-05-01/wordlist/hard?guesses=barf,map,food,name,superficial&name=1000&time=5000" | grep -Eq "^{" || error_exit "didn't accept the last leader"
+
+## Leader after max should be rejected.
+curl -s -X POST "localhost:8080/leaderboard/2019-05-01/wordlist/hard?guesses=barf,map,food,name,superficial&name=1001&time=5000" | grep -q "Sorry, we only accept" || error_exit "Didn't reject over-max leader"
+
+
 # Cleanup
-## remove backup file
+## remove backup files & repsonse
 rm backupLeaderboards/2019-04-30_normal.csv
+rm backupLeaderboards/2019-05-01_hard.csv
+rm /tmp/response.json
+
+echo "\nGood job, it works! 👍"
