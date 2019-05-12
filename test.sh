@@ -90,6 +90,10 @@ grep -E ',[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{3}Z,[0-9]+
 
 read -p "Stop the server, start it agan, then push enter to run recovery test"
 
+curl -s -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=acrid,whatever,finger,put,shoot,blah,eight,either&name=Yeah%20recovery%20worked&time=800000" | \
+    sed -e 's/"submitTime":"[^"]*"/"submitTime":""/g' | \
+    tee /tmp/recovery-response.json | \
+    grep -q '{"goobley":{"submitTime":"","time":2000,"numberOfGuesses":2},"\\"blerg\\"":{"submitTime":"","time":30000,"numberOfGuesses":3},"mergen":{"submitTime":"","time":100,"numberOfGuesses":1},"purg":{"submitTime":"","time":40,"numberOfGuesses":4},"Looben Doo":{"submitTime":"","time":5000,"numberOfGuesses":5},"Mukilteo👍":{"submitTime":"","time":600,"numberOfGuesses":6},"Dublin":{"submitTime":"","time":70000,"numberOfGuesses":7},"Foogey":{"submitTime":"","time":800000,"numberOfGuesses":8},"Yeah recovery worked":{"submitTime":"","time":800000,"numberOfGuesses":8}}' || error_exit "didn't recover all the data"
 
 
 
@@ -114,4 +118,5 @@ rm backupLeaderboards/2019-04-30_normal.csv
 rm backupLeaderboards/2019-05-01_hard.csv
 rm /tmp/response.json
 
-echo "\nGood job, it works! 👍"
+echo
+echo "Good job, it works! 👍"

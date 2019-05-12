@@ -1,6 +1,8 @@
 const express = require('express')
 const InMemoryDatabase = require('./InMemoryDatabase');
-const backupToFile = require('./backupToFile');
+const FileBackups = require('./FileBackups');
+
+FileBackups.recoverInMemoryDatabaseFromFiles();
 
 const app = express();
 const port = 8080;
@@ -16,21 +18,28 @@ FRONTEND:
 
 */
 
-app.get('/', (res) => res.status(201).send());
+app.get('/', res => res.status(201).send());
 
 app.post('/leaderboard/:timezonelessDate/wordlist/:wordlist', (req, res) => {
-    const {timezonelessDate: date, wordlist} = req.params;
-    let {name, time, guesses} = req.query;
+    const { timezonelessDate: date, wordlist } = req.params;
+    const { name, time, guesses } = req.query;
     const submitTime = (new Date()).toISOString();
 
-    const invalidReason = InMemoryDatabase.addLeader({date, wordlist, name, time, submitTime, guesses});
-    if (invalidReason) return res.status(400).send(invalidReason)
+    const invalidReason = InMemoryDatabase.addLeader({
+        date,
+        wordlist,
+        name,
+        time,
+        submitTime,
+        guesses,
+    });
+    if (invalidReason) return res.status(400).send(invalidReason);
 
     res.send(
         InMemoryDatabase.getLeadersForKeys(date, wordlist, true)
     );
 
-    backupToFile({date, wordlist, name, submitTime, time, guesses});
+    FileBackups.backupEntry({ date, wordlist, name, submitTime, time, guesses });
 })
 
 app.listen(port, () => console.log(`guess-my-word-backend listening on port ${port}!`))
