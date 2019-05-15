@@ -1,27 +1,30 @@
 const express = require('express');
+const https = require('https');
 const bodyParser = require('body-parser');
+const fs = require('fs');
 
 const InMemoryDatabase = require('./InMemoryDatabase');
 const FileBackups = require('./FileBackups');
 
-FileBackups.recoverInMemoryDatabaseFromFiles();
-
+const privateKey = fs.readFileSync('/etc/letsencrypt/live/home.hryanjones.com/privkey.pem', 'utf8');
+const certificate = fs.readFileSync('/etc/letsencrypt/live/home.hryanjones.com/fullchain.pem', 'utf8');
 const app = express();
-const port = 8080;
+const credentials = { key: privateKey, cert: certificate };
+const httpsServer = https.createServer(credentials, app);
+
+FileBackups.recoverInMemoryDatabaseFromFiles();
 
 /*
 TODO:
-1. need to be able to rebuild memory from stored file
-2. (later) backup old file regularly (to public S3?)
+1. (later) backup old file regularly (to public S3?)
 
 FRONTEND:
-1. Update frontend to post and handle response
-2. (later, create issue?) if time is > 24 hours need to reset
-
+1. (later, create issue?) if time is > 24 hours need to reset
 */
 
 app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
+    // res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Origin', 'hryanjones.com');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
     next();
 });
@@ -29,7 +32,7 @@ app.use((req, res, next) => {
 app.use(bodyParser.json())
 
 
-app.get('/', res => res.status(201).send());
+app.get('/', (req, res) => res.status(201).send());
 
 app.post('/leaderboard/:timezonelessDate/wordlist/:wordlist', (req, res) => {
     const { timezonelessDate: date, wordlist } = req.params;
@@ -56,4 +59,4 @@ app.post('/leaderboard/:timezonelessDate/wordlist/:wordlist', (req, res) => {
     FileBackups.backupEntry({ date, wordlist, name, submitTime, time, guesses });
 })
 
-app.listen(port, () => console.log(`guess-my-word-backend listening on port ${port}!`))
+httpsServer.listen(443);
