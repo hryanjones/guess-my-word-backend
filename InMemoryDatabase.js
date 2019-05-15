@@ -18,12 +18,17 @@ function addLeader({
     submitTime,
 }) {
     const time = parseInt(bareTime, 10);
-    const guesses = (bareGuesses || '').split(',');
+    const guesses = parseGuesses(bareGuesses);
 
     const invalidReason = getInvalidReason(date, wordlist, name, time, guesses)
         || addLeaderToDatabase(date, wordlist, name, { submitTime, time, guesses });
 
     return invalidReason;
+
+}
+function parseGuesses(bareGuesses) {
+    if (Array.isArray(bareGuesses)) return bareGuesses;
+    return (bareGuesses || '').split(',');
 }
 
 function addLeaderToDatabase(date, wordlist, name, data) {
@@ -31,7 +36,7 @@ function addLeaderToDatabase(date, wordlist, name, data) {
     if (Object.keys(leaders).length >= MAX_NUMBER_OF_LEADERS_FOR_DAYS_WORD_LIST) {
         return `Sorry, we only accept ${MAX_NUMBER_OF_LEADERS_FOR_DAYS_WORD_LIST} entries for the board in a day.`;
     }
-    if (leaders[name]) return `Sorry, "${name}" is already taken.`;
+    if (leaders[name]) return `Sorry, "${name}" is already taken. Please choose another.`;
     leaders[name] = data;
     return '';
 }

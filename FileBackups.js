@@ -14,6 +14,9 @@ function sanitizeName(name) {
 }
 
 function quote(string) {
+    if (Array.isArray(string)) {
+        quote(string.join(','));
+    }
     return `"${string}"`;
 }
 

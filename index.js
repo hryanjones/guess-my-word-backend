@@ -1,4 +1,6 @@
-const express = require('express')
+const express = require('express');
+const bodyParser = require('body-parser');
+
 const InMemoryDatabase = require('./InMemoryDatabase');
 const FileBackups = require('./FileBackups');
 
@@ -18,11 +20,23 @@ FRONTEND:
 
 */
 
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+    next();
+});
+
+app.use(bodyParser.json())
+
+
 app.get('/', res => res.status(201).send());
 
 app.post('/leaderboard/:timezonelessDate/wordlist/:wordlist', (req, res) => {
     const { timezonelessDate: date, wordlist } = req.params;
-    const { name, time, guesses } = req.query;
+    const data = Object.keys(req.query).length ? req.query : req.body; // might be better to just rewrite tests to use JSON :\;
+    const { time, guesses } = data;
+
+    const name = (data.name || '').trim();
     const submitTime = (new Date()).toISOString();
 
     const invalidReason = InMemoryDatabase.addLeader({
@@ -33,7 +47,7 @@ app.post('/leaderboard/:timezonelessDate/wordlist/:wordlist', (req, res) => {
         submitTime,
         guesses,
     });
-    if (invalidReason) return res.status(400).send(invalidReason);
+    if (invalidReason) return res.status(400).send({ invalidReason });
 
     res.send(
         InMemoryDatabase.getLeadersForKeys(date, wordlist, true)
