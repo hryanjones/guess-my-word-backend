@@ -36,7 +36,7 @@ function addLeaderToDatabase(date, wordlist, name, data) {
     if (Object.keys(leaders).length >= MAX_NUMBER_OF_LEADERS_FOR_DAYS_WORD_LIST) {
         return `Sorry, we only accept ${MAX_NUMBER_OF_LEADERS_FOR_DAYS_WORD_LIST} entries for the board in a day.`;
     }
-    if (leaders[name]) return `Sorry, "${name}" is already taken. Please choose another.`;
+    if (leaders[name]) return `Sorry, "${name}" is already taken today. Please choose another name.`;
     leaders[name] = data;
     return '';
 }
