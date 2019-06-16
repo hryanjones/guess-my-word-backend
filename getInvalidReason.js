@@ -56,7 +56,7 @@ const possibleWords = {
 function lookupWord(dateString, wordlist) {
     const [year, month, day] = dateString.split('-').map(str => parseInt(str, 10));
     if (year !== 2019) return '';
-    const dayOfYear = getDOY(new Date(year, month, day));
+    const dayOfYear = getDOY(new Date(year, month - 1, day));
     const index = (year - 2019) + dayOfYear - 114;
     const words = possibleWords[wordlist] || [];
     return words[index];

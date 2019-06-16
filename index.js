@@ -1,5 +1,6 @@
 const express = require('express');
 const https = require('https');
+const http = require('http');
 const bodyParser = require('body-parser');
 const fs = require('fs');
 
@@ -11,6 +12,7 @@ const certificate = fs.readFileSync('/etc/letsencrypt/live/home.hryanjones.com/f
 const app = express();
 const credentials = { key: privateKey, cert: certificate };
 const httpsServer = https.createServer(credentials, app);
+const httpServer = http.createServer(app);
 
 FileBackups.recoverInMemoryDatabaseFromFiles();
 
@@ -33,6 +35,13 @@ app.use(bodyParser.json())
 
 
 app.get('/', (req, res) => res.status(201).send());
+
+app.get('/leaderboard/:timezonelessDate/wordlist/:wordlist', (req, res) => {
+    const { timezonelessDate: date, wordlist } = req.params;
+    res.send(
+        InMemoryDatabase.getLeadersForKeys(date, wordlist, true)
+    );
+});
 
 app.post('/leaderboard/:timezonelessDate/wordlist/:wordlist', (req, res) => {
     const { timezonelessDate: date, wordlist } = req.params;
@@ -59,4 +68,5 @@ app.post('/leaderboard/:timezonelessDate/wordlist/:wordlist', (req, res) => {
     FileBackups.backupEntry({ date, wordlist, name, submitTime, time, guesses });
 });
 
+// httpServer.listen(8080);
 httpsServer.listen(443);
