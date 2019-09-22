@@ -18,10 +18,7 @@ FileBackups.recoverInMemoryDatabaseFromFiles();
 
 /*
 TODO:
-1. (later) backup old file regularly (to public S3?)
-
-FRONTEND:
-1. (later, create issue?) if time is > 24 hours need to reset
+1. (later) backup old file regularly to public S3 (Already accomplished with cron)
 */
 
 app.use((req, res, next) => {
