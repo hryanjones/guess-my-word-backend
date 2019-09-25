@@ -68,7 +68,6 @@ curl -s "localhost:8080/leaderboard/2019-04-30/wordlist/normal" | jq -c "keys" |
 # All Time Leaders
 ## Add leaders for a different day, same normal list
 curl -s -X POST "localhost:8080/leaderboard/2019-05-01/wordlist/normal?guesses=barf,blah,three,work&name=Foogey&time=4000" > /dev/null
-# emoji in name the encoded character is 👍
 curl -s -X POST "localhost:8080/leaderboard/2019-05-01/wordlist/normal?guesses=blue,put,shoot,blah,whatever,fly,something,work&name=Dublin&time=800000" > /dev/null
 
 curl -s "localhost:8080/leaderboard/ALL/wordlist/normal" | jq -c "[.Foogey,.Dublin]" | grep -q '[{"time":4000,"numberOfGuesses":4,"playCount":2},{"time":70000,"numberOfGuesses":7,"playCount":2}]'|| error_exit "didn't get expected response for all leaderboard"
@@ -80,6 +79,17 @@ curl -s -X POST "localhost:8080/leaderboard/2019-05-01/wordlist/hard?guesses=bar
 
 # Test getting all time leaderboard data
 
+## Add leaders for a another couple days, players need to have played at least 3 times
+curl -s -X POST "localhost:8080/leaderboard/2019-05-02/wordlist/normal?guesses=barf,blah,three,four,friends&name=Foogey&time=5000" > /dev/null
+curl -s -X POST "localhost:8080/leaderboard/2019-05-02/wordlist/normal?guesses=blue,put,shoot,blah,whatever,fly,something,eight,friends&name=Dublin&time=900000" > /dev/null
+
+curl -s -X POST "localhost:8080/leaderboard/2019-05-03/wordlist/normal?guesses=barf,blah,three,four,five,minute&name=Foogey&time=6000" > /dev/null
+curl -s -X POST "localhost:8080/leaderboard/2019-05-03/wordlist/normal?guesses=blue,put,shoot,blah,whatever,fly,something,eight,nine,minute&name=Dublin&time=1000000" > /dev/null
+
+curl -s -X POST "localhost:8080/leaderboard/2019-05-04/wordlist/normal?guesses=blue,put,shoot,blah,whatever,fly,something,eight,nine,ten,though&name=Dublin&time=1100000" > /dev/null
+
+
+curl -s "localhost:8080/leaderboard/ALL/wordlist/normal" | grep -Eq '{"Dublin":{"playCount":5,"firstSubmitDate":"....-..-..T0.:00:00.000Z","bestTime":70000,"bestNumberOfGuesses":7,"numberOfGuessesMedian":9,"timeMedian":900000,"weeklyPlayRate":7},"Foogey":{"playCount":4,"firstSubmitDate":"....-..-..T0.:00:00.000Z","bestTime":4000,"bestNumberOfGuesses":4,"numberOfGuessesMedian":5,"timeMedian":5000,"weeklyPlayRate":7}}' > /dev/null || error_exit "All time leaderboard data doesn't look right"
 
 # Test backup files
 

@@ -1,8 +1,12 @@
+'use strict';
+
 const getInvalidReason = require('./getInvalidReason');
 
 const leadersByDateAndListAndName = {};
 
 const MAX_NUMBER_OF_LEADERS_FOR_DAYS_WORD_LIST = 1000;
+
+const MIN_PLAY_COUNT_FOR_ALL_TIME_LEADERBOARD = 4;
 
 const InMemoryDatabase = {
     addLeader,
@@ -44,10 +48,16 @@ function addLeaderToDatabase(date, wordlist, name, data) {
         leaders = instantiateLeaderList(date, wordlist);
     }
     if (leaders[name]) return `Sorry, "${name}" is already taken today. Please choose another name.`;
+    Object.freeze(data); // try to prevent accidental mutations of in memory database
     leaders[name] = data;
     return '';
 }
 
+/**
+ * FIXME: this is confusing to sometimes have shallow copies and sometimes not.
+ * Note: if `convertToNumberOfGuesses` is true, then it returns 
+ * a shallow copy of leaders, and each leader.
+ */
 function getLeadersForKeys(date, list, convertToNumberOfGuesses = false) {
     if (date === 'ALL') {
         return getAllTimeLeaderboard(list);
@@ -85,7 +95,7 @@ function convertLeader(leaderData) {
     const leaderCopy = Object.assign(
         {},
         leaderData,
-        { numberOfGuesses: leaderData.guesses.length }
+        { numberOfGuesses: leaderData.guesses.length },
     );
     delete leaderCopy.guesses;
     return leaderCopy;
@@ -93,6 +103,7 @@ function convertLeader(leaderData) {
 
 function getAllTimeLeaderboard(list) {
     const allTimeLeaders = {};
+
     for (const date in leadersByDateAndListAndName) {
         const leaders = getLeadersForKeys(date, list, true);
 
@@ -100,17 +111,121 @@ function getAllTimeLeaderboard(list) {
             const leaderData = leaders[leaderName];
             const allTimeLeaderData = allTimeLeaders[leaderName];
             if (!allTimeLeaderData) {
-                leaderData.playCount = 1;
-                delete leaderData.submitTime;
-                allTimeLeaders[leaderName] = leaderData;
+                allTimeLeaders[leaderName] = instantiateAllTimeLeader(leaderData);
             } else {
-                allTimeLeaderData.playCount += 1;
-                allTimeLeaderData.numberOfGuesses = Math.min(allTimeLeaderData.numberOfGuesses, leaderData.numberOfGuesses);
-                allTimeLeaderData.time = Math.min(allTimeLeaderData.time, leaderData.time);
+                appendLeaderStatistics(allTimeLeaderData, leaderData);
             }
         }
     }
+
+    removeLowPlayLeaders(allTimeLeaders);
+    calculateFinalStatistics(allTimeLeaders);
     return allTimeLeaders;
 }
 
+function instantiateAllTimeLeader({
+    submitTime,
+    numberOfGuesses,
+    time,
+}) {
+    return {
+        playCount: 1,
+        firstSubmitDate: floorDate(submitTime),
+        bestTime: time,
+        // bestTimeWord: '', // TODO
+        timeList: [time],
+        bestNumberOfGuesses: numberOfGuesses,
+        // bestNumberOfGuessesWord: '', // TODO
+        numberOfGuessesList: [numberOfGuesses],
+    };
+
+}
+
+function appendLeaderStatistics(allTimeLeaderData, {
+    time,
+    numberOfGuesses,
+    submitTime,
+}) {
+    allTimeLeaderData.playCount += 1;
+
+    const {
+        numberOfGuessesList,
+        bestNumberOfGuesses,
+        timeList,
+        bestTime,
+    } = allTimeLeaderData;
+
+    numberOfGuessesList.push(numberOfGuesses);
+    if (numberOfGuesses < bestNumberOfGuesses) {
+        allTimeLeaderData.bestNumberOfGuesses = numberOfGuesses;
+    }
+
+    timeList.push(time);
+    if (time < bestTime) {
+        allTimeLeaderData.bestTime = time;
+    }
+
+    if (submitTime < allTimeLeaderData.firstSubmitDate) {
+        allTimeLeaderData.firstSubmitDate = floorDate(submitTime);
+    }
+}
+
+function removeLowPlayLeaders(allTimeLeaderData) {
+    for (const name in allTimeLeaderData) {
+        const leader = allTimeLeaderData[name];
+        if (leader.playCount < MIN_PLAY_COUNT_FOR_ALL_TIME_LEADERBOARD) {
+            delete allTimeLeaderData[name];
+        }
+    }
+}
+
+const MILLISECONDS_IN_A_DAY = 1000 /* ms per s */ * 60 /* s per min */ * 60 /* min per hour */
+    * 24; /* hour per day */
+const MILLISECONDS_IN_A_WEEK = MILLISECONDS_IN_A_DAY * 7; /* days per week */
+
+function calculateFinalStatistics(leaders) {
+    const now = floorDate(new Date());
+    for (const name in leaders) {
+        const leader = leaders[name];
+
+        leader.numberOfGuessesMedian = getFlooredMedian(leader.numberOfGuessesList);
+        delete leader.numberOfGuessesList;
+
+        leader.timeMedian = getFlooredMedian(leader.timeList);
+        delete leader.timeList;
+
+        const numberOfWeeksPlayed = (now - leader.firstSubmitDate)
+            / MILLISECONDS_IN_A_WEEK;
+
+        // it's not possible to have more than 7 so cap it
+        leader.weeklyPlayRate = Math.min(7, leader.playCount / numberOfWeeksPlayed);
+    }
+}
+
+function floorDate(date) {
+    date = new Date(date);
+    date.setHours(0);
+    date.setMinutes(0);
+    date.setSeconds(0);
+    date.setMilliseconds(0);
+    return date;
+}
+
+function getFlooredMedian(array) {
+    array = [...array];
+    array.sort(numericSort);
+
+    // length = 4 => 2nd thing => index of 1
+    // length = 3 => 2nd thing => index of 1
+    // length 16 => 8th thing => index of 7
+    // length 17 => 8th thing => index of 7
+    const indexOfMedian = Math.ceil(array.length / 2) - 1;
+    return array[indexOfMedian];
+}
+
+function numericSort(a, b) {
+    if (a < b) return -1;
+    if (a > b) return 1;
+    return 0;
+}
 module.exports = InMemoryDatabase;
