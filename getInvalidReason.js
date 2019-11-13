@@ -25,6 +25,9 @@ function getInvalidReason(dateString, wordlist, name, time, guesses) {
     if (!numberIsBetweenRange(numberOfGuesses, 0, maxNumberOfGuesses)) {
         return `Number of guesses must be a positive number less than ${maxNumberOfGuesses}. You gave: ${numberOfGuesses} .`;
     }
+    if (numberOfGuesses === 1) {
+        return "Congrats on getting it in one guess! Sorry we don't accept submissions to the board for this.";
+    }
     const firstInvalidWord = guesses.find(g => !wordMatcher.test(g));
     if (firstInvalidWord) {
         return `Found an invalid word in the guesses: ${firstInvalidWord}.`;
