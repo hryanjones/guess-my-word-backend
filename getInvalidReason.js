@@ -1,9 +1,11 @@
 const timezonelessDateMatcher = /^2[0-1][0-9]{2}-[0-1][0-9]-[0-9]{2}$/;
-const acceptableLists = ['normal', 'hard']
+const acceptableLists = ['normal', 'hard'];
 const wordMatcher = /^[a-z]{2,15}$/;
 const maxNameLength = 128;
 const maxNumberOfGuesses = 200;
 const maxTime = 24 * 60 * 60 * 1000; // max time is 24 hours
+
+const simpleBadWordRegex = /\b(fuck(s|ing|er)?|shit(ty|ter)?|ass(es|hole|holes)?|cock(s|sucker)?|penis(es)?|cunt(s)?|vagina(s)?|boob(s|ies)?|dicks|twat(s)?|nigger(s)?|kike(s)?|puss(y|ies)|fag(s|got|gots)?|whore(s)?)\b/;
 
 function getInvalidReason(dateString, wordlist, name, time, guesses) {
     if (!timezonelessDateMatcher.test(dateString)) {
@@ -42,7 +44,19 @@ function getInvalidReason(dateString, wordlist, name, time, guesses) {
         return `The last guess isn't the word I was expecting for this day and wordlist. You sent: "${word}".`;
     }
 
+    if (isInappropriateName(name)) {
+        return 'inappropriate';
+    }
+
     return '';
+
+    function isInappropriateName(input) {
+        const lowerCaseName = input.toLowerCase();
+        const otherWord = lookupOtherWord(dateString, wordlist);
+        const hasAnswersMatcher = new RegExp(`\\b(${expectedWord}|${otherWord})\\b`);
+        return simpleBadWordRegex.test(lowerCaseName)
+            || hasAnswersMatcher.test(lowerCaseName);
+    }
 }
 
 /* eslint-disable */
@@ -63,6 +77,11 @@ function lookupWord(dateString, wordlist) {
     const index = (year - 2019) + dayOfYear - 114;
     const words = possibleWords[wordlist] || [];
     return words[index];
+}
+
+function lookupOtherWord(dateString, wordlist) {
+    const otherWordList = { normal: 'hard', hard: 'normal' }[wordlist];
+    return lookupWord(dateString, otherWordList);
 }
 
 function numberIsBetweenRange(number, min, max) {

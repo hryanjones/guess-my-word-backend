@@ -8,6 +8,8 @@ const MAX_NUMBER_OF_LEADERS_FOR_DAYS_WORD_LIST = 1000;
 
 const MIN_PLAY_COUNT_FOR_ALL_TIME_LEADERBOARD = 4;
 
+const THAT_GUY_NAME = 'THAT GUY 🤦‍♀️';
+
 const InMemoryDatabase = {
     addLeader,
     getLeadersForKeys,
@@ -22,15 +24,24 @@ function addLeader({
     submitTime,
 }) {
     const time = parseInt(bareTime, 10);
-    const guesses = parseGuesses(bareGuesses);
+    let guesses = parseGuesses(bareGuesses);
 
-    const invalidReason = getInvalidReason(date, wordlist, name, time, guesses) ||
-        addLeaderToDatabase(date, wordlist, name, { submitTime, time, guesses }); // the database could also return an invalid reason
+    let invalidReason = getInvalidReason(date, wordlist, name, time, guesses);
+    if (invalidReason === 'inappropriate') {
+        name = THAT_GUY_NAME;
+        return addLeaderOrGetInvalidReason() || invalidReason;
+    }
+    invalidReason = invalidReason || addLeaderOrGetInvalidReason();
     if (invalidReason) {
         console.info(`${submitTime} - ${name} - INVALID REASON: ${invalidReason}`);
     }
 
     return invalidReason;
+
+    function addLeaderOrGetInvalidReason() {
+        // the database could also return an invalid reason
+        return addLeaderToDatabase(date, wordlist, name, { submitTime, time, guesses });
+    }   
 
 }
 function parseGuesses(bareGuesses) {
@@ -47,7 +58,7 @@ function addLeaderToDatabase(date, wordlist, name, data) {
     if (!leaders) {
         leaders = instantiateLeaderList(date, wordlist);
     }
-    if (leaders[name]) return `Sorry, "${name}" is already taken today. Please choose another name.`;
+    if (leaders[name] && name !== THAT_GUY_NAME) return `Sorry, "${name}" is already taken today. Please choose another name.`;
     Object.freeze(data); // try to prevent accidental mutations of in memory database
     leaders[name] = data;
     return '';

@@ -56,13 +56,22 @@ app.post('/leaderboard/:timezonelessDate/wordlist/:wordlist', (req, res) => {
         submitTime,
         guesses,
     });
-    if (invalidReason) return res.status(400).send({ invalidReason });
+    if (invalidReason === 'inappropriate') {
+        return setTimeout(returnLeaders, 30000);
+    }
+    if (invalidReason) {
+        return res.status(400).send({ invalidReason });
+    }
 
-    res.send(
-        InMemoryDatabase.getLeadersForKeys(date, wordlist, true)
-    );
+    returnLeaders();
 
     FileBackups.backupEntry({ date, wordlist, name, submitTime, time, guesses });
+
+    function returnLeaders() {
+        res.send(
+            InMemoryDatabase.getLeadersForKeys(date, wordlist, true)
+        );
+    }
 });
 
 // httpServer.listen(8080);
