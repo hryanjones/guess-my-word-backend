@@ -69,7 +69,7 @@ app.post('/leaderboard/:timezonelessDate/wordlist/:wordlist', (req, res) => {
 
     function returnLeaders() {
         res.send(
-            InMemoryDatabase.getLeadersForKeys(date, wordlist, true)
+            InMemoryDatabase.getLeadersForKeys(date, wordlist, true),
         );
     }
 });
