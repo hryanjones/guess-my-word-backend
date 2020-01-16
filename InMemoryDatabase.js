@@ -4,7 +4,7 @@ const getInvalidReason = require('./getInvalidReason');
 
 const leadersByDateAndListAndName = {};
 
-const MAX_NUMBER_OF_LEADERS_FOR_DAYS_WORD_LIST = 1000;
+const MAX_NUMBER_OF_LEADERS_FOR_DAYS_WORD_LIST = 30000;
 
 const MIN_PLAY_COUNT_FOR_ALL_TIME_LEADERBOARD = 4;
 
@@ -41,7 +41,7 @@ function addLeader({
     function addLeaderOrGetInvalidReason() {
         // the database could also return an invalid reason
         return addLeaderToDatabase(date, wordlist, name, { submitTime, time, guesses });
-    }   
+    }
 
 }
 function parseGuesses(bareGuesses) {
@@ -66,7 +66,7 @@ function addLeaderToDatabase(date, wordlist, name, data) {
 
 /**
  * FIXME: this is confusing to sometimes have shallow copies and sometimes not.
- * Note: if `convertToNumberOfGuesses` is true, then it returns 
+ * Note: if `convertToNumberOfGuesses` is true, then it returns
  * a shallow copy of leaders, and each leader.
  */
 function getLeadersForKeys(date, list, convertToNumberOfGuesses = false) {
