@@ -19,7 +19,10 @@ read -p "Cleaned up files, stop & start the server if this isn't the first test.
 
 function error_exit {
     echo "FAIL: $1" >&2   ## Send message to stderr. Exclude >&2 if you don't want it that way.
-    exit "${2:-1}"  ## Return a code specified by $2 or 1 by default.
+    if [ $# -gt 1 ]; then
+        eval $2
+    fi
+    exit 1
 }
 
 nc -zv localhost 8080 2> /dev/null || error_exit "looks like the server isn't running. Did you start it with node index.js ?"
@@ -37,25 +40,6 @@ curl -s -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=s
 ## no word for date
 curl -s -X POST "localhost:8080/leaderboard/2018-04-30/wordlist/normal?guesses=blue,daughter&name=goobley&time=2000" \
     | grep -q "Didn't find a word for" || error_exit "no word for date 400"
-
-
-# Test validation that fails silently
-
-curl -Is -X POST "localhost:8080/leaderboard/2019-4-30/wordlist/normal?guesses=something,daughter&name=goobley&time=2000" | grep -q "HTTP/1.1 201" || error_exit "date format 201"
-
-curl -Is -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/notnormal?guesses=something,daughter&name=goobley&time=2000" \
-    | grep -q "HTTP/1.1 201" || error_exit "wordlist 201"
-
-## no name given
-curl -Is -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=something,daughter&time=2000" \
-    | grep -q "HTTP/1.1 201" || error_exit "missing name 201"
-
-## over 24 hours time
-curl -Is -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=something,daughter&name=goobley&time=86400001" \
-    | grep -q "HTTP/1.1 201" || error_exit "time too big 201"
-
-curl -Is -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=daughter&name=goobley&time=1" \
-    | grep -q "HTTP/1.1 201" || error_exit "only one guess 201"
 
 ## not the correct word
 curl -Is -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=blue,netherland&name=goobley&time=2000" \
@@ -75,10 +59,11 @@ curl -s -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=b
 curl -s -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=acrid,whatever,finger,put,shoot,blah,eight,daughter&name=Foogey&time=800000"
 
 ## Test output is correct
+echo -n '[{"submitTime":"","time":2000,"numberOfGuesses":2,"name":"goobley","awards":"🍀 lucky?"},{"submitTime":"","time":30000,"numberOfGuesses":3,"name":"\"blerg\"","awards":"🍀 lucky?"},{"submitTime":"","time":301,"numberOfGuesses":2,"name":"mergen","awards":"🍀 lucky?"},{"submitTime":"","time":1140,"numberOfGuesses":4,"name":"purg","awards":"🏆 fewest guesses, 🏅 first guesser"},{"submitTime":"","time":5000,"numberOfGuesses":5,"name":"Looben Doo"},{"submitTime":"","time":600,"numberOfGuesses":6,"name":"Mukilteo👍","awards":"🏆 fastest"},{"submitTime":"","time":70000,"numberOfGuesses":7,"name":"Dublin"},{"submitTime":"","time":800000,"numberOfGuesses":8,"name":"Foogey"}]' > /tmp/expected.json
 curl -s "localhost:8080/leaderboard/2019-04-30/wordlist/normal" | \
-    sed -e 's/"submitTime":"[^"]*"/"submitTime":""/g' | \
-    tee /tmp/response.json | \
-    grep -q '{"goobley":{"submitTime":"","time":2000,"numberOfGuesses":2},"\\"blerg\\"":{"submitTime":"","time":30000,"numberOfGuesses":3},"mergen":{"submitTime":"","time":301,"numberOfGuesses":2},"purg":{"submitTime":"","time":1140,"numberOfGuesses":4},"Looben Doo":{"submitTime":"","time":5000,"numberOfGuesses":5},"Mukilteo👍":{"submitTime":"","time":600,"numberOfGuesses":6},"Dublin":{"submitTime":"","time":70000,"numberOfGuesses":7},"Foogey":{"submitTime":"","time":800000,"numberOfGuesses":8}}' || error_exit "unexpected JSON response, compare with /tmp/response.json"
+    sed -e 's/"submitTime":"[^"]*"/"submitTime":""/g' \
+    > /tmp/response.json  \
+    && diff -q /tmp/response.json /tmp/expected.json || error_exit "unexpected JSON response" "meld /tmp/response.json /tmp/expected.json"
 
 # Test not duplicate users
 curl -s -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=something,daughter&name=goobley&time=2000" \
@@ -89,8 +74,6 @@ curl -s -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=s
 curl -s -X POST "localhost:8080/leaderboard/2019-05-01/wordlist/normal?guesses=barf,blah,three,work&name=Foogey&time=4000" > /dev/null
 curl -s -X POST "localhost:8080/leaderboard/2019-05-01/wordlist/normal?guesses=blue,put,shoot,blah,whatever,fly,something,work&name=Dublin&time=800000" > /dev/null
 
-curl -s "localhost:8080/leaderboard/ALL/wordlist/normal" | jq -c "[.Foogey,.Dublin]" | grep -q '[{"time":4000,"numberOfGuesses":4,"playCount":2},{"time":70000,"numberOfGuesses":7,"playCount":2}]'|| error_exit "didn't get expected response for all leaderboard"
-
 # Add leaders for a different day, hard list
 curl -s -X POST "localhost:8080/leaderboard/2019-05-01/wordlist/hard?guesses=something,aberration&name=mergen&time=400" > /dev/null
 curl -s -X POST "localhost:8080/leaderboard/2019-05-01/wordlist/hard?guesses=cry,whimper,fly,aberration&name=purg&time=401" > /dev/null
@@ -98,7 +81,7 @@ curl -s -X POST "localhost:8080/leaderboard/2019-05-01/wordlist/hard?guesses=bar
 
 # Test getting all time leaderboard data
 
-## Add leaders for a another couple days, players need to have played at least 3 times
+## Add leaders for a another couple days, players need to have played at least 4 times
 curl -s -X POST "localhost:8080/leaderboard/2019-05-02/wordlist/normal?guesses=barf,blah,three,four,friends&name=Foogey&time=5000" > /dev/null
 curl -s -X POST "localhost:8080/leaderboard/2019-05-02/wordlist/normal?guesses=blue,put,shoot,blah,whatever,fly,something,eight,friends&name=Dublin&time=900000" > /dev/null
 
@@ -108,11 +91,11 @@ curl -s -X POST "localhost:8080/leaderboard/2019-05-03/wordlist/normal?guesses=b
 curl -s -X POST "localhost:8080/leaderboard/2019-05-04/wordlist/normal?guesses=blue,put,shoot,blah,whatever,fly,something,eight,nine,ten,though&name=Dublin&time=1100000" > /dev/null
 
 
-echo -n '{"Dublin":{"playCount":5,"firstSubmitDate":"","bestTime":70000,"bestNumberOfGuesses":7,"numberOfGuessesMedian":9,"timeMedian":900000,"weeklyPlayRate":7},"Foogey":{"playCount":4,"firstSubmitDate":"","bestTime":4000,"bestNumberOfGuesses":4,"numberOfGuessesMedian":5,"timeMedian":5000,"weeklyPlayRate":7}}' > /tmp/expected.json
+echo -n '[{"playCount":5,"firstSubmitDate":"","bestTime":70000,"bestNumberOfGuesses":7,"numberOfGuessesMedian":9,"timeMedian":900000,"weeklyPlayRate":7,"name":"Dublin","awards":"🏆👏 highest weekly rate, 🏅 most plays"},{"playCount":4,"firstSubmitDate":"","bestTime":4000,"bestNumberOfGuesses":4,"numberOfGuessesMedian":5,"timeMedian":5000,"weeklyPlayRate":7,"name":"Foogey","awards":"🏆👏 highest weekly rate, 🏆👏 fastest median, 🏆👏 fewest median guesses, 🏆 fastest, 🏆 fewest guesses"}]' > /tmp/expected.json
 curl -s "localhost:8080/leaderboard/ALL/wordlist/normal" \
     | sed -e 's/"firstSubmitDate":"[^"]*"/"firstSubmitDate":""/g' \
     > /tmp/response.json \
-    && diff -q /tmp/response.json /tmp/expected.json  || error_exit "All time leaderboard data doesn't look right. \$ meld /tmp/response.json /tmp/expected.json"
+    && diff -q /tmp/response.json /tmp/expected.json  || error_exit "All time leaderboard data doesn't look right."  "meld /tmp/response.json /tmp/expected.json"
 
 # Test backup files
 
@@ -136,12 +119,30 @@ read -p "Stop the server, start it agan, then push enter to run recovery test"
 
 curl -s -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=acrid,whatever,finger,put,shoot,blah,eight,daughter&name=Yeah%20recovery%20worked&time=800000"
 
-echo -n '{"goobley":{"submitTime":"","time":2000,"numberOfGuesses":2},"\"blerg\"":{"submitTime":"","time":30000,"numberOfGuesses":3},"mergen":{"submitTime":"","time":301,"numberOfGuesses":2},"purg":{"submitTime":"","time":1140,"numberOfGuesses":4},"Looben Doo":{"submitTime":"","time":5000,"numberOfGuesses":5},"Mukilteo👍":{"submitTime":"","time":600,"numberOfGuesses":6},"Dublin":{"submitTime":"","time":70000,"numberOfGuesses":7},"Foogey":{"submitTime":"","time":800000,"numberOfGuesses":8},"Yeah recovery worked":{"submitTime":"","time":800000,"numberOfGuesses":8}}' > /tmp/expected.json
+echo -n '[{"submitTime":"","time":2000,"numberOfGuesses":2,"name":"goobley","awards":"🍀 lucky?"},{"submitTime":"","time":30000,"numberOfGuesses":3,"name":"\"blerg\"","awards":"🍀 lucky?"},{"submitTime":"","time":301,"numberOfGuesses":2,"name":"mergen","awards":"🍀 lucky?"},{"submitTime":"","time":1140,"numberOfGuesses":4,"name":"purg","awards":"🏆 fewest guesses, 🏅 first guesser"},{"submitTime":"","time":5000,"numberOfGuesses":5,"name":"Looben Doo"},{"submitTime":"","time":600,"numberOfGuesses":6,"name":"Mukilteo👍","awards":"🏆 fastest"},{"submitTime":"","time":70000,"numberOfGuesses":7,"name":"Dublin"},{"submitTime":"","time":800000,"numberOfGuesses":8,"name":"Foogey"},{"submitTime":"","time":800000,"numberOfGuesses":8,"name":"Yeah recovery worked"}]' > /tmp/expected.json
 curl -s "localhost:8080/leaderboard/2019-04-30/wordlist/normal" | \
     sed -e 's/"submitTime":"[^"]*"/"submitTime":""/g' > \
-    /tmp/recovery-response.json && \
-    diff -q /tmp/recovery-response.json /tmp/expected.json  || error_exit "didn't recover all the data, \$ meld /tmp/recovery-response.json /tmp/expected.json "
+    /tmp/response.json && \
+    diff -q /tmp/response.json /tmp/expected.json  || error_exit "didn't recover all the data" "meld /tmp/response.json /tmp/expected.json"
 
+
+# Test validation that fails silently
+
+curl -Is -X POST "localhost:8080/leaderboard/2019-4-30/wordlist/normal?guesses=something,daughter&name=goobley&time=2000" | grep -q "HTTP/1.1 201" || error_exit "date format 201"
+
+curl -Is -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/notnormal?guesses=something,daughter&name=goobley&time=2000" \
+    | grep -q "HTTP/1.1 201" || error_exit "wordlist 201"
+
+## no name given
+curl -Is -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=something,daughter&time=2000" \
+    | grep -q "HTTP/1.1 201" || error_exit "missing name 201"
+
+## over 24 hours time
+curl -Is -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=something,daughter&name=goobley&time=86400001" \
+    | grep -q "HTTP/1.1 201" || error_exit "time too big 201"
+
+curl -Is -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=daughter&name=goobley&time=1" \
+    | grep -q "HTTP/1.1 201" || error_exit "only one guess 201"
 
 
 # Max number of leaders

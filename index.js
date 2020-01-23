@@ -29,7 +29,7 @@ app.use((req, res, next) => {
     next();
 });
 
-app.use(bodyParser.json())
+app.use(bodyParser.json());
 
 
 app.get('/', (req, res) => res.status(201).send());
@@ -37,7 +37,7 @@ app.get('/', (req, res) => res.status(201).send());
 app.get('/leaderboard/:timezonelessDate/wordlist/:wordlist', (req, res) => {
     const { timezonelessDate: date, wordlist } = req.params;
     res.send(
-        InMemoryDatabase.getLeadersForKeys(date, wordlist, true)
+        InMemoryDatabase.getLeadersArray(date, wordlist)
     );
 });
 

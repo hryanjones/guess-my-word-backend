@@ -1,6 +1,7 @@
 'use strict';
 
-const {getInvalidReason} = require('./getInvalidReason');
+const { getInvalidReason } = require('./getInvalidReason');
+const { addLeaderAwards } = require('./LeaderAwards');
 
 const leadersByDateAndListAndName = {};
 
@@ -12,7 +13,7 @@ const THAT_GUY_NAME = 'THAT GUY 🤦‍♀️';
 
 const InMemoryDatabase = {
     addLeader,
-    getLeadersForKeys,
+    getLeadersArray,
 };
 
 function addLeader({
@@ -42,8 +43,8 @@ function addLeader({
         // the database could also return an invalid reason
         return addLeaderToDatabase(date, wordlist, name, { submitTime, time, guesses });
     }
-
 }
+
 function parseGuesses(bareGuesses) {
     if (Array.isArray(bareGuesses)) return bareGuesses;
     return (bareGuesses || '').split(',');
@@ -51,7 +52,7 @@ function parseGuesses(bareGuesses) {
 
 function addLeaderToDatabase(date, wordlist, name, data) {
     let leaders = getLeadersForKeys(date, wordlist);
-    const numberOfLeaders = leaders && Object.keys(leaders).length || 0;
+    const numberOfLeaders = (leaders && Object.keys(leaders).length) || 0;
     if (numberOfLeaders >= MAX_NUMBER_OF_LEADERS_FOR_DAYS_WORD_LIST) {
         return `Sorry, we only accept ${MAX_NUMBER_OF_LEADERS_FOR_DAYS_WORD_LIST} entries for the board in a day.`;
     }
@@ -64,23 +65,22 @@ function addLeaderToDatabase(date, wordlist, name, data) {
     return '';
 }
 
-/**
- * FIXME: this is confusing to sometimes have shallow copies and sometimes not.
- * Note: if `convertToNumberOfGuesses` is true, then it returns
- * a shallow copy of leaders, and each leader.
- */
-function getLeadersForKeys(date, list, convertToNumberOfGuesses = false) {
+function getLeadersArray(date, list) {
+    let leaders;
+    const type = date === 'ALL' ? 'allTime' : 'normal';
     if (date === 'ALL') {
-        return getAllTimeLeaderboard(list);
+        leaders = getAllTimeLeaderboard(list);
+    } else {
+        leaders = getLeadersForKeys(date, list);
+        leaders = sanitizeLeaders(leaders);
     }
 
-    const leaders = leadersByDateAndListAndName[date] && leadersByDateAndListAndName[date][list];
-    if (!leaders) return leaders;
+    addLeaderAwards(leaders, type);
+    return Object.values(leaders);
+}
 
-    if (!convertToNumberOfGuesses) {
-        return leaders;
-    }
-    return convertLeadersToNumberOfGuesses(leaders);
+function getLeadersForKeys(date, list) {
+    return leadersByDateAndListAndName[date] && leadersByDateAndListAndName[date][list];
 }
 
 function instantiateLeaderList(date, list) {
@@ -93,7 +93,7 @@ function instantiateLeaderList(date, list) {
     return leadersByDateAndListAndName[date][list];
 }
 
-function convertLeadersToNumberOfGuesses(leaders) {
+function sanitizeLeaders(leaders) {
     const convertedLeaders = {};
     for (const leaderName in leaders) {
         const leaderData = leaders[leaderName];
@@ -109,6 +109,10 @@ function convertLeader(leaderData) {
         { numberOfGuesses: leaderData.guesses.length },
     );
     delete leaderCopy.guesses;
+
+    if (leaderCopy.weeklyPlayRate) {
+        leaderCopy.weeklyPlayRate = leaderCopy.weeklyPlayRate.toFixed(2);
+    }
     return leaderCopy;
 }
 
@@ -116,7 +120,9 @@ function getAllTimeLeaderboard(list) {
     const allTimeLeaders = {};
 
     for (const date in leadersByDateAndListAndName) {
-        const leaders = getLeadersForKeys(date, list, true);
+        let leaders = getLeadersForKeys(date, list);
+        leaders = sanitizeLeaders(leaders);
+
 
         for (const leaderName in leaders) {
             const leaderData = leaders[leaderName];
@@ -149,7 +155,6 @@ function instantiateAllTimeLeader({
         // bestNumberOfGuessesWord: '', // TODO
         numberOfGuessesList: [numberOfGuesses],
     };
-
 }
 
 function appendLeaderStatistics(allTimeLeaderData, {
