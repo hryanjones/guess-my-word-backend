@@ -5,34 +5,50 @@ const maxNameLength = 128;
 const maxNumberOfGuesses = 200;
 const maxTime = 24 * 60 * 60 * 1000; // max time is 24 hours
 
-const simpleBadWordRegex = /\b(fuck(s|ing|er)?|shit(ty|ter)?|ass(es|hole|holes)?|cock(s|sucker)?|penis(es)?|cunt(s)?|vagina(s)?|boob(s|ies)?|dicks|twat(s)?|nigger(s)?|kike(s)?|puss(y|ies)|fag(s|got|gots)?|whore(s)?)\b/;
+const simpleBadWordRegex = /\b(fuck(s|ing|er)?|shit(ty|ter)?|ass(es|hole|holes)?|cock(s|sucker)?|penis(es)?|cunt(s)?|vagina(s)?|boob(s|ies)?|dicks|twat(s)?|nigger(s)?|kike(s)?|puss(y|ies)|fag(s|got|gots)?|whore(s)?|bitch(es)?)\b/;
+
+const reasons = {
+    badDate: "Date isn't the correct format, like '2019-04-30'",
+    futureDate: 'Date is too far in the future, greater than UTC+14',
+    badList: "wordlist isn't one of known lists",
+    noName: 'You must give a name.',
+    badTime: 'Time must be greater than 300 ms less than 24 hours',
+    badGuesses: 'numberOfGuesses must be a number greater than 1',
+    invalidWord: 'Found an invalid word in the guesses',
+    unexpectedWord: "The last guess isn't the word I was expecting for this day and wordlist",
+};
+
+const NO_RESPONSE_INVALID_REASONS = new Set(Object.values(reasons));
 
 function getInvalidReason(dateString, wordlist, name, time, guesses) {
     if (!timezonelessDateMatcher.test(dateString)) {
-        return `Date isn't the correct format, like "2019-04-30". You sent: "${dateString}".`;
+        return `${reasons.badDate}. badDate: ${dateString}`;
+    }
+    if (dateIsTooFarInFuture(dateString)) {
+        return `${reasons.futureDate}. futureDate: ${dateString}`;
     }
     if (!acceptableLists.includes(wordlist)) {
-        return `wordlist isn't one of known lists: ${acceptableLists.join(', ')}. You gave: ${wordlist}}.`;
+        return `${reasons.badList}. badList: ${wordlist}`;
     }
     if (!name) {
-        return 'You must give a name.';
+        return reasons.noName;
     }
     if (name.length > maxNameLength) {
-        return `Name can't be longer than ${maxNameLength}. Yours is ${name.length}.`;
+        return `Name can't be longer than ${maxNameLength}. Yours is ${name.length}`;
     }
-    if (!numberIsBetweenRange(time, 0, maxTime)) {
-        return `Time must be a positive number less than 24 hours. You gave ${time}ms.`;
+    if (!integerIsBetweenRange(time, 300, maxTime)) {
+        return `${reasons.badTime}. badTime: ${time}`;
     }
     const numberOfGuesses = guesses.length;
-    if (!numberIsBetweenRange(numberOfGuesses, 0, maxNumberOfGuesses)) {
-        return `Number of guesses must be a positive number less than ${maxNumberOfGuesses}. You gave: ${numberOfGuesses} .`;
+    if (!integerIsGreaterThan(numberOfGuesses, 1)) {
+        return `${reasons.badGuesses}. badGuesses: ${numberOfGuesses}`;
     }
-    if (numberOfGuesses === 1) {
-        return "Congrats on getting it in one guess! Sorry we don't accept submissions to the board for this.";
+    if (numberOfGuesses >= maxNumberOfGuesses) {
+        return `Sorry, the completion board doesn't accept submissions with more than ${maxNumberOfGuesses} guesses`;
     }
     const firstInvalidWord = guesses.find(g => !wordMatcher.test(g));
     if (firstInvalidWord) {
-        return `Found an invalid word in the guesses: ${firstInvalidWord}.`;
+        return `${reasons.invalidWord}. invalidWord: ${firstInvalidWord}`;
     }
 
     const word = guesses.slice(-1)[0];
@@ -41,7 +57,7 @@ function getInvalidReason(dateString, wordlist, name, time, guesses) {
         return `Didn't find a word for the date (${dateString}) and wordlist (${wordlist}) you gave.`;
     }
     if (word !== expectedWord) {
-        return `The last guess isn't the word I was expecting for this day and wordlist. You sent: "${word}".`;
+        return `${reasons.unexpectedWord}. unexpectedWord: ${word}`;
     }
 
     if (isInappropriateName(name)) {
@@ -71,9 +87,23 @@ const possibleWords = {
 /* eslint-enable */
 
 function lookupWord(dateString, difficulty) {
-    const [year, month, day] = dateString.split('-').map(str => parseInt(str, 10));
-    const date = new Date(year, month - 1, day);
+    const date = getDate(dateString);
     return getWord(date, difficulty);
+}
+
+function getDate(dateString) {
+    const [year, month, day] = dateString.split('-').map(str => parseInt(str, 10));
+    return new Date(year, month - 1, day);
+}
+
+function dateIsTooFarInFuture(dateString) {
+    const date = getDate(dateString);
+    const now = new Date();
+    const minutesToUTC = now.getTimezoneOffset();
+    // UTC+14 is the earliest possible date https://en.wikipedia.org/wiki/UTC%2B14:00
+    const minutesToEarliestDate = minutesToUTC + (14 * 60);
+    const earliestEpochTime = +now + (minutesToEarliestDate * 60 * 1000);
+    return +date > earliestEpochTime;
 }
 
 function getWord(date, difficulty) {
@@ -93,10 +123,14 @@ function lookupOtherWord(dateString, wordlist) {
     return lookupWord(dateString, otherWordList);
 }
 
-function numberIsBetweenRange(number, min, max) {
-    return Number.isFinite(number)
-        && number > min
+function integerIsBetweenRange(number, min, max) {
+    return integerIsGreaterThan(number, min)
         && number < max;
+}
+
+function integerIsGreaterThan(number, min) {
+    return Number.isInteger(number)
+        && number > min;
 }
 
 // https://stackoverflow.com/questions/8619879/javascript-calculate-the-day-of-the-year-1-366
@@ -118,4 +152,7 @@ function getDOY(date) {
 };
 /* eslint-enable */
 
-module.exports = getInvalidReason;
+module.exports = {
+    getInvalidReason,
+    NO_RESPONSE_INVALID_REASONS,
+};

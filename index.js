@@ -4,6 +4,7 @@ const http = require('http');
 const bodyParser = require('body-parser');
 const fs = require('fs');
 
+const { NO_RESPONSE_INVALID_REASONS } = require('./getInvalidReason');
 const InMemoryDatabase = require('./InMemoryDatabase');
 const FileBackups = require('./FileBackups');
 
@@ -40,6 +41,8 @@ app.get('/leaderboard/:timezonelessDate/wordlist/:wordlist', (req, res) => {
     );
 });
 
+const INVALID_REASON_CONTEXT_MATCHER = /\. .*/; // everything after the period is just context in the reason
+
 app.post('/leaderboard/:timezonelessDate/wordlist/:wordlist', (req, res) => {
     const { timezonelessDate: date, wordlist } = req.params;
     const data = Object.keys(req.query).length ? req.query : req.body; // might be better to just rewrite tests to use JSON :\;
@@ -57,20 +60,22 @@ app.post('/leaderboard/:timezonelessDate/wordlist/:wordlist', (req, res) => {
         guesses,
     });
     if (invalidReason === 'inappropriate') {
-        return setTimeout(returnLeaders, 30000);
+        return setTimeout(respond, 30000);
+    }
+    const reasonWithoutContext = invalidReason.replace(INVALID_REASON_CONTEXT_MATCHER, '');
+    if (NO_RESPONSE_INVALID_REASONS.has(reasonWithoutContext)) {
+        return setTimeout(respond, 2000);
     }
     if (invalidReason) {
         return res.status(400).send({ invalidReason });
     }
 
-    returnLeaders();
+    respond();
 
     FileBackups.backupEntry({ date, wordlist, name, submitTime, time, guesses });
 
-    function returnLeaders() {
-        res.send(
-            InMemoryDatabase.getLeadersForKeys(date, wordlist, true),
-        );
+    function respond() {
+        res.status(201).send();
     }
 });
 

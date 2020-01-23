@@ -1,10 +1,10 @@
 'use strict';
 
-const getInvalidReason = require('./getInvalidReason');
+const {getInvalidReason} = require('./getInvalidReason');
 
 const leadersByDateAndListAndName = {};
 
-const MAX_NUMBER_OF_LEADERS_FOR_DAYS_WORD_LIST = 30000;
+const MAX_NUMBER_OF_LEADERS_FOR_DAYS_WORD_LIST = 20000;
 
 const MIN_PLAY_COUNT_FOR_ALL_TIME_LEADERBOARD = 4;
 
@@ -24,7 +24,7 @@ function addLeader({
     submitTime,
 }) {
     const time = parseInt(bareTime, 10);
-    let guesses = parseGuesses(bareGuesses);
+    const guesses = parseGuesses(bareGuesses);
 
     let invalidReason = getInvalidReason(date, wordlist, name, time, guesses);
     if (invalidReason === 'inappropriate') {
@@ -33,7 +33,7 @@ function addLeader({
     }
     invalidReason = invalidReason || addLeaderOrGetInvalidReason();
     if (invalidReason) {
-        console.info(`${submitTime} - ${name} - INVALID REASON: ${invalidReason}`);
+        console.warn(`${submitTime} - ${name} - INVALID REASON: ${invalidReason}`);
     }
 
     return invalidReason;
