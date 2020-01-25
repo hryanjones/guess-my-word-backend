@@ -5,7 +5,9 @@ const maxNameLength = 128;
 const maxNumberOfGuesses = 200;
 const maxTime = 24 * 60 * 60 * 1000; // max time is 24 hours
 
-const simpleBadWordRegex = /\b(fuck(s|ing|er)?|shit(ty|ter)?|ass(es|hole|holes)?|cock(s|sucker)?|penis(es)?|cunt(s)?|vagina(s)?|boob(s|ies)?|dicks|twat(s)?|nigger(s)?|kike(s)?|puss(y|ies)|fag(s|got|gots)?|whore(s)?|bitch(es)?)\b/;
+const simpleBadWordRegex = /\b(asses|twat)\b/;
+
+const simpleNonBreakingBadWordRegex = /(fuck|dicks|asshole(s)?|shit|cock|penis|cunt|vagina|twats|boob|nigger|kike|puss(y|ies)|fag(s|got)|whore|bitch)/;
 
 const reasons = {
     badDate: "Date isn't the correct format, like '2019-04-30'",
@@ -69,8 +71,10 @@ function getInvalidReason(dateString, wordlist, name, time, guesses) {
     function isInappropriateName(input) {
         const lowerCaseName = input.toLowerCase();
         const otherWord = lookupOtherWord(dateString, wordlist);
+        const lowerCaseNameWithNonSpaceCharsRemoved = lowerCaseName.replace(/(_|-)/g, '');
         const hasAnswersMatcher = new RegExp(`\\b(${expectedWord}|${otherWord})\\b`);
-        return simpleBadWordRegex.test(lowerCaseName)
+        return simpleNonBreakingBadWordRegex.test(lowerCaseNameWithNonSpaceCharsRemoved)
+            || simpleBadWordRegex.test(lowerCaseNameWithNonSpaceCharsRemoved)
             || hasAnswersMatcher.test(lowerCaseName);
     }
 }
