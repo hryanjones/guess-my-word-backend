@@ -1,10 +1,12 @@
 const timezonelessDateMatcher = /^2[0-1][0-9]{2}-[0-1][0-9]-[0-9]{2}$/;
 const acceptableLists = ['normal', 'hard'];
 const wordMatcher = /^[a-z]{2,15}$/;
+const minNameLength = 2;
 const maxNameLength = 128;
 const maxNumberOfGuesses = 200;
 const maxTime = 24 * 60 * 60 * 1000; // max time is 24 hours
 const MAX_NUMBER_OF_LEADERS_FOR_DAYS_WORD_LIST = 20000;
+const GRAND_FATHERED_SHORT_NAMES = new Set('RjDTZ'.split(''));
 
 const simpleBadWordRegex = /\b(asses|twat)\b/;
 
@@ -45,6 +47,9 @@ function getInvalidReason(dateString, wordlist, name, time, guesses, leaders, sk
     }
     if (name.length > maxNameLength) {
         return `Name can't be longer than ${maxNameLength}. Yours is ${name.length}`;
+    }
+    if (name.trim().length < minNameLength && !GRAND_FATHERED_SHORT_NAMES.has(name)) {
+        return `Your name, "${name}" is too short. Try a bit longer one.`;
     }
     if (!integerIsBetweenRange(time, 300, maxTime)) {
         return `${reasons.badTime}. badTime: ${time}`;

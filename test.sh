@@ -37,6 +37,10 @@ curl -s -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=a
 curl -s -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=something,daughter&name=1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890&time=2000" \
     | grep -q "Name can't be longer" || error_exit "name too long 400"
 
+## name is too short
+curl -s -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=something,daughter&name=a&time=2000" \
+    | grep -q "is too short" || error_exit "name too short 400"
+
 ## no word for date
 curl -s -X POST "localhost:8080/leaderboard/2018-04-30/wordlist/normal?guesses=blue,daughter&name=goobley&time=2000" \
     | grep -q "Didn't find a word for" || error_exit "no word for date 400"
@@ -60,6 +64,9 @@ curl -s -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=b
 curl -s -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=blab,finger,put,shoot,blah,daughter&name=Mukilteo%F0%9F%91%8D&time=600" > /dev/null
 curl -s -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=blue,put,shoot,blah,whatever,fly,daughter&name=Dublin&time=70000" > /dev/null
 curl -s -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=acrid,whatever,finger,put,shoot,blah,eight,daughter&name=Foogey&time=800000"
+
+curl -s "localhost:8080/leaderboard/ALL/wordlist/normal" > /dev/null # call the all time leaderboard to cache it
+
 
 ## Test output is correct
 echo -n '[{"submitTime":"","time":2000,"numberOfGuesses":2,"name":"goobley","awards":"🍀 lucky?"},{"submitTime":"","time":30000,"numberOfGuesses":3,"name":"\"blerg\"","awards":"🍀 lucky?"},{"submitTime":"","time":301,"numberOfGuesses":2,"name":"mergen","awards":"🍀 lucky?"},{"submitTime":"","time":1140,"numberOfGuesses":4,"name":"purg","awards":"🍀 lucky?"},{"submitTime":"","time":5000,"numberOfGuesses":5,"name":"Looben Doo","awards":"🍀 lucky?"},{"submitTime":"","time":600,"numberOfGuesses":6,"name":"Mukilteo👍","awards":"🍀 lucky?"},{"submitTime":"","time":70000,"numberOfGuesses":7,"name":"Dublin","awards":"🍀 lucky?"},{"submitTime":"","time":800000,"numberOfGuesses":8,"name":"Foogey","awards":"🍀 lucky?"}]' > /tmp/expected.json
@@ -129,6 +136,12 @@ curl -s "localhost:8080/leaderboard/2019-04-30/wordlist/normal" | \
     diff -q /tmp/response.json /tmp/expected.json  || error_exit "didn't recover all the data" "meld /tmp/response.json /tmp/expected.json"
 
 
+
+## allow existing short name
+curl -Is -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=something,daughter&name=R&time=2000" \
+    | grep -q "HTTP/1.1 201" || error_exit "date format 201"
+
+
 # Test validation that fails silently
 
 curl -Is -X POST "localhost:8080/leaderboard/2019-4-30/wordlist/normal?guesses=something,daughter&name=goobley&time=2000" | grep -q "HTTP/1.1 201" || error_exit "date format 201"
@@ -152,7 +165,7 @@ echo "Good job, it works! 👍"
 echo "If you want to run the max number of leaders test, uncomment it."
 
 # # Max number of leaders
-# for LEADER in {4..19999}; do
+# for LEADER in {5..19999}; do
 #     curl -s -X POST "localhost:8080/leaderboard/2019-05-01/wordlist/hard?guesses=barf,map,food,name,aberration&name=${LEADER}&time=5000" > /dev/null
 #     if ! (( $LEADER % 200 )) ; then
 #         echo "just sent leader ${LEADER}"

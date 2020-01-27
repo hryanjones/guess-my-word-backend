@@ -3,7 +3,7 @@ const LeaderAwards = {
 };
 
 const LUCKY_AWARD = '🍀 lucky?';
-const LUCKY_BUGGER_GUESS_COUNT_THRESHOLD = 8;
+const LUCKY_BUGGER_GUESS_COUNT_THRESHOLD = 6;
 const THAT_GUY_NAME = 'THAT GUY 🤦‍♀️'; // name that signifies a user is using an inappropriate username
 
 function addLeaderAwards(leadersByName, type, allTimeLeaders) {
