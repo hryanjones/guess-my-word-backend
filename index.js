@@ -75,7 +75,7 @@ app.post('/leaderboard/:timezonelessDate/wordlist/:wordlist', (req, res) => {
     FileBackups.backupEntry({ date, wordlist, name, submitTime, time, guesses });
 
     function respond() {
-        res.status(201).send();
+        res.status(201).send({});
     }
 });
 
