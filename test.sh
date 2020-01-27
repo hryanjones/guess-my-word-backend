@@ -45,10 +45,13 @@ curl -s -X POST "localhost:8080/leaderboard/2018-04-30/wordlist/normal?guesses=b
 curl -Is -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=blue,netherland&name=goobley&time=2000" \
     | grep -q "HTTP/1.1 201" || error_exit "unexpected word 400"
 
+## 201 same guesses and time
+curl -s -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=blue,daughter&name=goobley&time=2000" > /dev/null
+curl -Is -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=blue,daughter&name=blue&time=2000" > /dev/null
+
 
 # Test storing data
 
-curl -s -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=blue,daughter&name=goobley&time=2000" > /dev/null
 curl -s -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=acrid,whatever,daughter&name=%22blerg%22&time=30000" > /dev/null
 curl -s -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=something,daughter&name=mergen&time=301" > /dev/null
 curl -s -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=cry,whimper,fly,daughter&name=purg&time=1140" > /dev/null
@@ -117,7 +120,7 @@ grep -E ',[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{3}Z,[0-9]+
 
 read -p "Stop the server, start it agan, then push enter to run recovery test"
 
-curl -s -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=acrid,whatever,finger,put,shoot,blah,eight,daughter&name=Yeah%20recovery%20worked&time=800000"
+curl -s -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=acrid,whatever,finger,put,shoot,derp,eight,daughter&name=Yeah%20recovery%20worked&time=800000"
 
 echo -n '[{"submitTime":"","time":2000,"numberOfGuesses":2,"name":"goobley","awards":"🍀 lucky?"},{"submitTime":"","time":30000,"numberOfGuesses":3,"name":"\"blerg\"","awards":"🍀 lucky?"},{"submitTime":"","time":301,"numberOfGuesses":2,"name":"mergen","awards":"🍀 lucky?"},{"submitTime":"","time":1140,"numberOfGuesses":4,"name":"purg","awards":"🏆 fewest guesses, 🏅 first guesser"},{"submitTime":"","time":5000,"numberOfGuesses":5,"name":"Looben Doo"},{"submitTime":"","time":600,"numberOfGuesses":6,"name":"Mukilteo👍","awards":"🏆 fastest"},{"submitTime":"","time":70000,"numberOfGuesses":7,"name":"Dublin"},{"submitTime":"","time":800000,"numberOfGuesses":8,"name":"Foogey"},{"submitTime":"","time":800000,"numberOfGuesses":8,"name":"Yeah recovery worked"}]' > /tmp/expected.json
 curl -s "localhost:8080/leaderboard/2019-04-30/wordlist/normal" | \
@@ -145,20 +148,23 @@ curl -Is -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=
     | grep -q "HTTP/1.1 201" || error_exit "only one guess 201"
 
 
-# Max number of leaders
-for LEADER in {4..19999}; do
-    curl -s -X POST "localhost:8080/leaderboard/2019-05-01/wordlist/hard?guesses=barf,map,food,name,aberration&name=${LEADER}&time=5000" > /dev/null
-    if ! (( $LEADER % 200 )) ; then
-        echo "just sent leader ${LEADER}"
-    fi
-done
+echo "Good job, it works! 👍"
+echo "If you want to run the max number of leaders test, uncomment it."
 
-## Last acceptable leader should have normal output
-curl -Is -X POST "localhost:8080/leaderboard/2019-05-01/wordlist/hard?guesses=barf,map,food,name,aberration&name=20000&time=5000" | grep -q "HTTP/1.1 201" || error_exit "didn't accept the last leader"
+# # Max number of leaders
+# for LEADER in {4..19999}; do
+#     curl -s -X POST "localhost:8080/leaderboard/2019-05-01/wordlist/hard?guesses=barf,map,food,name,aberration&name=${LEADER}&time=5000" > /dev/null
+#     if ! (( $LEADER % 200 )) ; then
+#         echo "just sent leader ${LEADER}"
+#     fi
+# done
+
+# ## Last acceptable leader should have normal output
+# curl -Is -X POST "localhost:8080/leaderboard/2019-05-01/wordlist/hard?guesses=barf,map,food,name,aberration&name=20000&time=5000" | grep -q "HTTP/1.1 201" || error_exit "didn't accept the last leader"
 
 
-## Leader after max should be rejected.
-curl -s -X POST "localhost:8080/leaderboard/2019-05-01/wordlist/hard?guesses=barf,map,food,name,aberration&name=20000&time=5000" | grep -q "Sorry, we only accept" || error_exit "Didn't reject over-max leader"
+# ## Leader after max should be rejected.
+# curl -s -X POST "localhost:8080/leaderboard/2019-05-01/wordlist/hard?guesses=barf,map,food,name,aberration&name=20000&time=5000" | grep -q "Sorry, we only accept" || error_exit "Didn't reject over-max leader"
 
 
 # Cleanup
@@ -169,9 +175,5 @@ rm backupLeaderboards/2019-05-02_normal.csv
 rm backupLeaderboards/2019-05-03_normal.csv
 rm backupLeaderboards/2019-05-04_normal.csv
 rm backupLeaderboards/2019-05-01_hard.csv
-rm /tmp/recovery-response.json
 rm /tmp/response.json
 rm /tmp/expected.json
-
-echo
-echo "Good job, it works! 👍"

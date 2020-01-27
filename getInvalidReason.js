@@ -4,6 +4,7 @@ const wordMatcher = /^[a-z]{2,15}$/;
 const maxNameLength = 128;
 const maxNumberOfGuesses = 200;
 const maxTime = 24 * 60 * 60 * 1000; // max time is 24 hours
+const MAX_NUMBER_OF_LEADERS_FOR_DAYS_WORD_LIST = 20000;
 
 const simpleBadWordRegex = /\b(asses|twat)\b/;
 
@@ -18,11 +19,18 @@ const reasons = {
     badGuesses: 'numberOfGuesses must be a number greater than 1',
     invalidWord: 'Found an invalid word in the guesses',
     unexpectedWord: "The last guess isn't the word I was expecting for this day and wordlist",
+    sameWordsAndTime: 'Having the exact same words and same completion time is *very* unlikely',
 };
 
 const NO_RESPONSE_INVALID_REASONS = new Set(Object.values(reasons));
 
-function getInvalidReason(dateString, wordlist, name, time, guesses) {
+function getInvalidReason(dateString, wordlist, name, time, guesses, leaders) {
+    leaders = leaders || {};
+    const numberOfLeaders = (leaders && Object.keys(leaders).length) || 0;
+    if (numberOfLeaders >= MAX_NUMBER_OF_LEADERS_FOR_DAYS_WORD_LIST) {
+        return `Sorry, we only accept ${MAX_NUMBER_OF_LEADERS_FOR_DAYS_WORD_LIST} entries for the board in a day.`;
+    }
+
     if (!timezonelessDateMatcher.test(dateString)) {
         return `${reasons.badDate}. badDate: ${dateString}`;
     }
@@ -66,6 +74,11 @@ function getInvalidReason(dateString, wordlist, name, time, guesses) {
         return 'inappropriate';
     }
 
+    const joinedGuesses = guesses.join(',');
+    if (Object.values(leaders).some(sameGuessesAndTime)) {
+        return `${reasons.sameWordsAndTime}. name: ${name}, time: ${time}`;
+    }
+
     return '';
 
     function isInappropriateName(input) {
@@ -76,6 +89,11 @@ function getInvalidReason(dateString, wordlist, name, time, guesses) {
         return simpleNonBreakingBadWordRegex.test(lowerCaseNameWithNonSpaceCharsRemoved)
             || simpleBadWordRegex.test(lowerCaseNameWithNonSpaceCharsRemoved)
             || hasAnswersMatcher.test(lowerCaseName);
+    }
+
+    function sameGuessesAndTime(savedLeader) {
+        return savedLeader.time === time
+            && savedLeader.guesses.join(',') === joinedGuesses;
     }
 }
 

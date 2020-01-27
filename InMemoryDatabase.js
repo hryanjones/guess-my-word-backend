@@ -5,8 +5,6 @@ const { addLeaderAwards } = require('./LeaderAwards');
 
 const leadersByDateAndListAndName = {};
 
-const MAX_NUMBER_OF_LEADERS_FOR_DAYS_WORD_LIST = 20000;
-
 const MIN_PLAY_COUNT_FOR_ALL_TIME_LEADERBOARD = 4;
 
 const THAT_GUY_NAME = 'THAT GUY 🤦‍♀️';
@@ -27,7 +25,8 @@ function addLeader({
     const time = parseInt(bareTime, 10);
     const guesses = parseGuesses(bareGuesses);
 
-    let invalidReason = getInvalidReason(date, wordlist, name, time, guesses);
+    const leaders = getLeadersForKeys(date, wordlist);
+    let invalidReason = getInvalidReason(date, wordlist, name, time, guesses, leaders);
     if (invalidReason === 'inappropriate') {
         name = THAT_GUY_NAME;
         return addLeaderOrGetInvalidReason() || invalidReason;
@@ -54,10 +53,6 @@ function parseGuesses(bareGuesses) {
 
 function addLeaderToDatabase(date, wordlist, name, data) {
     let leaders = getLeadersForKeys(date, wordlist);
-    const numberOfLeaders = (leaders && Object.keys(leaders).length) || 0;
-    if (numberOfLeaders >= MAX_NUMBER_OF_LEADERS_FOR_DAYS_WORD_LIST) {
-        return `Sorry, we only accept ${MAX_NUMBER_OF_LEADERS_FOR_DAYS_WORD_LIST} entries for the board in a day.`;
-    }
     if (!leaders) {
         leaders = instantiateLeaderList(date, wordlist);
     }
