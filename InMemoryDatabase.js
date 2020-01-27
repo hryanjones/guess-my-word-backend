@@ -34,7 +34,9 @@ function addLeader({
     }
     invalidReason = invalidReason || addLeaderOrGetInvalidReason();
     if (invalidReason) {
-        console.warn(`${submitTime} - ${name} - INVALID REASON: ${invalidReason}`);
+        const logMessage = `${submitTime} - ${name} - INVALID REASON: ${invalidReason}`;
+        console.log(logMessage); // print to log
+        console.warn(logMessage); // print to stderr so easier to see outside of log tail
     }
 
     return invalidReason;

@@ -3,6 +3,7 @@ const https = require('https');
 const http = require('http');
 const bodyParser = require('body-parser');
 const fs = require('fs');
+const os = require('os');
 
 const { NO_RESPONSE_INVALID_REASONS } = require('./getInvalidReason');
 const InMemoryDatabase = require('./InMemoryDatabase');
@@ -16,11 +17,6 @@ const httpsServer = https.createServer(credentials, app);
 const httpServer = http.createServer(app);
 
 FileBackups.recoverInMemoryDatabaseFromFiles();
-
-/*
-TODO:
-1. (later) backup old file regularly to public S3 (Already accomplished with cron)
-*/
 
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
@@ -45,7 +41,10 @@ const INVALID_REASON_CONTEXT_MATCHER = /\. .*/; // everything after the period i
 
 app.post('/leaderboard/:timezonelessDate/wordlist/:wordlist', (req, res) => {
     const { timezonelessDate: date, wordlist } = req.params;
-    const data = Object.keys(req.query).length ? req.query : req.body; // might be better to just rewrite tests to use JSON :\;
+
+    // might be better to just rewrite tests to use JSON :\;
+    const data = Object.keys(req.query).length ? req.query : req.body;
+
     const { time, guesses } = data;
 
     const name = (data.name || '').trim();
@@ -79,5 +78,8 @@ app.post('/leaderboard/:timezonelessDate/wordlist/:wordlist', (req, res) => {
     }
 });
 
-// httpServer.listen(8080);
-httpsServer.listen(443);
+if (os.userInfo().username === 'root') {
+    httpsServer.listen(443);
+} else {
+    httpServer.listen(8080);
+}
