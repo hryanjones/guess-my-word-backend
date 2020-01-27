@@ -3,10 +3,10 @@ const LeaderAwards = {
 };
 
 const LUCKY_AWARD = '🍀 lucky?';
-const LUCKY_BUGGER_GUESS_COUNT_THRESHOLD = 3; // FIXME will up this to 8 with combination of name check
+const LUCKY_BUGGER_GUESS_COUNT_THRESHOLD = 8;
 const THAT_GUY_NAME = 'THAT GUY 🤦‍♀️'; // name that signifies a user is using an inappropriate username
 
-function addLeaderAwards(leadersByName, type) {
+function addLeaderAwards(leadersByName, type, allTimeLeaders) {
     const awardTrackers = getNewAwardTrackers(type);
     const luckyTracker = {
         names: [],
@@ -17,8 +17,8 @@ function addLeaderAwards(leadersByName, type) {
         const leader = leadersByName[name];
         prepareLeaderForBoard(leader, name);
 
-        if (leader.numberOfGuesses <= LUCKY_BUGGER_GUESS_COUNT_THRESHOLD) {
-            luckyTracker.names.push(leader.name);
+        if (isLucky(leader, allTimeLeaders)) {
+            luckyTracker.names.push(name);
             continue; // eslint-disable-line
         }
         awardTrackers.forEach((tracker) => {
@@ -40,6 +40,13 @@ function addLeaderAwards(leadersByName, type) {
         }
     });
     return leadersByName;
+}
+
+function isLucky(leader, allTimeLeaders) {
+    const normalBoard = Number.isInteger(leader.numberOfGuesses);
+    return normalBoard
+        && !allTimeLeaders[leader.name] // not on the all time board
+        && leader.numberOfGuesses <= LUCKY_BUGGER_GUESS_COUNT_THRESHOLD;
 }
 
 

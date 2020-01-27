@@ -24,7 +24,7 @@ const reasons = {
 
 const NO_RESPONSE_INVALID_REASONS = new Set(Object.values(reasons));
 
-function getInvalidReason(dateString, wordlist, name, time, guesses, leaders) {
+function getInvalidReason(dateString, wordlist, name, time, guesses, leaders, skipExpensiveChecks) {
     leaders = leaders || {};
     const numberOfLeaders = (leaders && Object.keys(leaders).length) || 0;
     if (numberOfLeaders >= MAX_NUMBER_OF_LEADERS_FOR_DAYS_WORD_LIST) {
@@ -75,7 +75,7 @@ function getInvalidReason(dateString, wordlist, name, time, guesses, leaders) {
     }
 
     const joinedGuesses = guesses.join(',');
-    if (Object.values(leaders).some(sameGuessesAndTime)) {
+    if (!skipExpensiveChecks && Object.values(leaders).some(sameGuessesAndTime)) {
         return `${reasons.sameWordsAndTime}. name: ${name}, time: ${time}`;
     }
 

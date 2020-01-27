@@ -65,7 +65,7 @@ function recoverInMemoryDatabaseFromFiles() {
         lines.forEach((line) => {
             let [whole, name, submitTime, time, guesses] = line.match(DATA_LINE_DESTRUCTURE_PATTERN);
             name = name.replace(/\\"/g, '"');
-            InMemoryDatabase.addLeader({ date, wordlist, name, guesses, time, submitTime });
+            InMemoryDatabase.addLeader({ date, wordlist, name, guesses, time, submitTime }, true);
         });
 
         console.log(`\tRecovered ${lines.length} leaders from ${fileName}`);

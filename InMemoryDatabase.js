@@ -9,6 +9,8 @@ const MIN_PLAY_COUNT_FOR_ALL_TIME_LEADERBOARD = 4;
 
 const THAT_GUY_NAME = 'THAT GUY 🤦‍♀️';
 
+let ALL_TIME_LEADERS = null;
+
 const InMemoryDatabase = {
     addLeader,
     getLeadersArray,
@@ -21,12 +23,12 @@ function addLeader({
     guesses: bareGuesses,
     time: bareTime,
     submitTime,
-}) {
+}, fromBackup = false) {
     const time = parseInt(bareTime, 10);
     const guesses = parseGuesses(bareGuesses);
 
     const leaders = getLeadersForKeys(date, wordlist);
-    let invalidReason = getInvalidReason(date, wordlist, name, time, guesses, leaders);
+    let invalidReason = getInvalidReason(date, wordlist, name, time, guesses, leaders, fromBackup);
     if (invalidReason === 'inappropriate') {
         name = THAT_GUY_NAME;
         return addLeaderOrGetInvalidReason() || invalidReason;
@@ -36,9 +38,10 @@ function addLeader({
         const logMessage = `${submitTime} - ${name} - INVALID REASON: ${invalidReason}`;
         console.log(logMessage); // print to log
         console.warn(logMessage); // print to stderr so easier to see outside of log tail
+        return invalidReason;
     }
 
-    return invalidReason;
+    return '';
 
     function addLeaderOrGetInvalidReason() {
         // the database could also return an invalid reason
@@ -66,13 +69,15 @@ function getLeadersArray(date, list) {
     let leaders;
     const type = date === 'ALL' ? 'allTime' : 'normal';
     if (date === 'ALL') {
-        leaders = getAllTimeLeaderboard(list);
+        ALL_TIME_LEADERS = getAllTimeLeaderboard(list);
+        leaders = ALL_TIME_LEADERS;
+        console.log('Fetching all time leaderboard.');
     } else {
         leaders = getLeadersForKeys(date, list);
         leaders = sanitizeLeaders(leaders);
     }
 
-    addLeaderAwards(leaders, type);
+    addLeaderAwards(leaders, type, ALL_TIME_LEADERS);
     return Object.values(leaders);
 }
 

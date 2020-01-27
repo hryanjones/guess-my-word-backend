@@ -17,6 +17,7 @@ const httpsServer = https.createServer(credentials, app);
 const httpServer = http.createServer(app);
 
 FileBackups.recoverInMemoryDatabaseFromFiles();
+InMemoryDatabase.getLeadersArray('ALL'); // cache the leaderboard
 
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
