@@ -71,7 +71,8 @@ function getLeadersArray(date, list) {
     if (date === 'ALL') {
         ALL_TIME_LEADERS = getAllTimeLeaderboard(list);
         leaders = ALL_TIME_LEADERS;
-        console.log('Fetching all time leaderboard.');
+        const now = new Date();
+        console.log(`${now.toISOString()} - Fetching all time leaderboard.`);
     } else {
         leaders = getLeadersForKeys(date, list);
         leaders = sanitizeLeaders(leaders);
