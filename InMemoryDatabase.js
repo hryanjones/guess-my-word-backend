@@ -3,7 +3,20 @@
 const { getInvalidReason } = require('./getInvalidReason');
 const { addLeaderAwards } = require('./LeaderAwards');
 
-const leadersByDateAndListAndName = {};
+const leadersByDateAndListAndName = {}; // see below for structure
+/*
+{
+    [DateString]: {
+        [wordList: 'normal' or 'hard']: {
+            [name]: {
+                guesses: String[],
+                time: Integer, // ms
+                submitTime: ISODateString,
+            }
+        }
+    }
+}
+*/
 
 const MIN_PLAY_COUNT_FOR_ALL_TIME_LEADERBOARD = 4;
 
@@ -11,9 +24,23 @@ const THAT_GUY_NAME = 'THAT GUY 🤦‍♀️';
 
 const ALL_TIME_LEADERS_BY_LIST = {};
 
+let BAD_NAMES = {}; // see below for structure
+/*
+{
+    [name: string]: {
+        firstReportDate: Date,
+        reportedByOnFirstDay: array[],
+        reportedByAfterFirstDay: array[],
+    }
+*/
+const LIMIT_FOR_FIRST_DAY_HIDING = 3;
+const LIMIT_FOR_ALL_TIME_HIDING = 7;
+const FIRST_DAY_TIME_IN_MS = 12 /* hours */ * 60 /* min/hour */ * 60 /* sec/min */ * 1000 /* ms */;
+
 const InMemoryDatabase = {
     addLeader,
     getLeadersArray,
+    addBadName,
 };
 
 function addLeader({
@@ -80,6 +107,7 @@ function getLeadersArray(date, list) {
     ALL_TIME_LEADERS_BY_LIST[list] = allTimeLeaders; // cache all time leaders
 
     addLeaderAwards(leaders, type, allTimeLeaders);
+    markBadNames(leaders);
     return Object.values(leaders);
 }
 
@@ -251,4 +279,36 @@ function numericSort(a, b) {
     if (a > b) return 1;
     return 0;
 }
+
+/*
+TODO:
+1. validation (see comments below)
+2. Add in the badName return data to the frontend based on BAD_NAMES
+3. file backup and recovery of BAD_NAMES
+4. frontend work to report
+*/
+function addBadName({reporterName, badName, date}) {
+    // silently reject when date isn't valid
+    // silently reject reports where reporterName is not valid leaderboard name
+    // silently reject reports where badName isn't on the leaderboard for date
+    const now = new Date();
+    const badActor = BAD_NAMES[badName] || getBaseBadNameRecord();
+    if ((now - badActor.firstReportDate) > FIRST_DAY_TIME_IN_MS) {
+        badActor.reportedByOnFirstDay.add(reporterName);
+    } else {
+        badActor.reportedByAfterFirstDay.add(reporterName);
+    }
+    BAD_NAMES[badName] = badActor;
+}
+
+function getBaseBadNameRecord() {
+    return {
+        firstReportDate: new Date(),
+        reportedByOnFirstDay: new Set(),
+        reportedByAfterFirstDay: new Set(),
+    };
+}
+
+
+
 module.exports = InMemoryDatabase;
