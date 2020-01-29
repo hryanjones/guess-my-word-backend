@@ -9,7 +9,7 @@ const MIN_PLAY_COUNT_FOR_ALL_TIME_LEADERBOARD = 4;
 
 const THAT_GUY_NAME = 'THAT GUY 🤦‍♀️';
 
-let ALL_TIME_LEADERS = null;
+const ALL_TIME_LEADERS_BY_LIST = {};
 
 const InMemoryDatabase = {
     addLeader,
@@ -68,17 +68,18 @@ function addLeaderToDatabase(date, wordlist, name, data) {
 function getLeadersArray(date, list) {
     let leaders;
     const type = date === 'ALL' ? 'allTime' : 'normal';
-    if (date === 'ALL') {
-        ALL_TIME_LEADERS = getAllTimeLeaderboard(list);
-        leaders = ALL_TIME_LEADERS;
+    const allTimeLeaders = getAllTimeLeaderboard(list, /* prefer cached if */ type === 'normal');
+    if (type === 'allTime') {
+        leaders = allTimeLeaders;
         const now = new Date();
         console.log(`${now.toISOString()} - Fetching all time leaderboard.`);
     } else {
         leaders = getLeadersForKeys(date, list);
         leaders = sanitizeLeaders(leaders);
     }
+    ALL_TIME_LEADERS_BY_LIST[list] = allTimeLeaders; // cache all time leaders
 
-    addLeaderAwards(leaders, type, ALL_TIME_LEADERS);
+    addLeaderAwards(leaders, type, allTimeLeaders);
     return Object.values(leaders);
 }
 
@@ -119,7 +120,10 @@ function convertLeader(leaderData) {
     return leaderCopy;
 }
 
-function getAllTimeLeaderboard(list) {
+function getAllTimeLeaderboard(list, preferCached) {
+    if (preferCached && ALL_TIME_LEADERS_BY_LIST[list]) {
+        return ALL_TIME_LEADERS_BY_LIST[list];
+    }
     const allTimeLeaders = {};
 
     for (const date in leadersByDateAndListAndName) {
