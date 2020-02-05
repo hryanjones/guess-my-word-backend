@@ -13,7 +13,7 @@ rm /tmp/recovery-response.json 2> /dev/null
 rm /tmp/response.json 2> /dev/null
 rm /tmp/expected.json 2> /dev/null
 
-read -p "Cleaned up files, stop & start the server if this isn't the first test."
+echo "Cleaned up test files."
 
 # Utility
 
@@ -22,10 +22,16 @@ function error_exit {
     if [ $# -gt 1 ]; then
         eval $2
     fi
+    kill "$server_pid"
     exit 1
 }
 
-nc -zv localhost 8080 2> /dev/null || error_exit "looks like the server isn't running. Did you start it with node index.js ?"
+nc -zv localhost 8080 2> /dev/null && read -p "The server is running, stop it so the test can start it itself."
+
+
+node ./index &
+server_pid="$!"
+sleep 2 # wait for server to start
 
 # Test validation that has a return
 
@@ -125,7 +131,10 @@ grep -E ',[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{3}Z,[0-9]+
 
 # Recovering from backup files
 
-read -p "Stop the server, start it agan, then push enter to run recovery test"
+kill "$server_pid"
+node ./index.js &
+sleep 3
+server_pid="$!"
 
 curl -s -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=acrid,whatever,finger,put,shoot,derp,eight,daughter&name=Yeah%20recovery%20worked&time=800000"
 
@@ -178,6 +187,22 @@ echo "If you want to run the max number of leaders test, uncomment it."
 
 # ## Leader after max should be rejected.
 # curl -s -X POST "localhost:8080/leaderboard/2019-05-01/wordlist/hard?guesses=barf,map,food,name,aberration&name=20000&time=5000" | grep -q "Sorry, we only accept" || error_exit "Didn't reject over-max leader"
+
+
+# Bad Names test
+
+## make 3 reports for goobley
+curl -s -H "Content-Type: application/json" --data '{"reporterName":"mergen", "badName":"goobley"}' -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal/badname" > /dev/null
+curl -s -H "Content-Type: application/json" --data '{"reporterName":"purg", "badName":"goobley"}' -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal/badname" > /dev/null
+curl -s -H "Content-Type: application/json" --data '{"reporterName":"Mukilteo👍", "badName":"goobley"}' -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal/badname" > /dev/null
+
+echo -n '[{"submitTime":"","time":2000,"numberOfGuesses":2,"name":"goobley","awards":"🍀 lucky?","badName":true},{"submitTime":"","time":30000,"numberOfGuesses":3,"name":"\"blerg\"","awards":"🍀 lucky?"},{"submitTime":"","time":301,"numberOfGuesses":2,"name":"mergen","awards":"🍀 lucky?"},{"submitTime":"","time":1140,"numberOfGuesses":4,"name":"purg","awards":"🍀 lucky?"},{"submitTime":"","time":5000,"numberOfGuesses":5,"name":"Looben Doo","awards":"🍀 lucky?"},{"submitTime":"","time":600,"numberOfGuesses":6,"name":"Mukilteo👍","awards":"🍀 lucky?"},{"submitTime":"","time":70000,"numberOfGuesses":7,"name":"Dublin","awards":"🏆 fastest, 🏆 fewest guesses, 🏅 first guesser"},{"submitTime":"","time":800000,"numberOfGuesses":8,"name":"Foogey"},{"submitTime":"","time":800000,"numberOfGuesses":8,"name":"Yeah recovery worked"},{"submitTime":"","time":2000,"numberOfGuesses":2,"name":"R","awards":"🍀 lucky?"}]' > /tmp/expected.json
+curl -s "localhost:8080/leaderboard/2019-04-30/wordlist/normal" \
+    | sed -e 's/"submitTime":"[^"]*"/"submitTime":""/g' \
+    > /tmp/response.json\
+    && diff -q /tmp/response.json /tmp/expected.json \
+    || error_exit "didn't correctly apply badName from 3 reports" "meld /tmp/response.json /tmp/expected.json"
+
 
 
 # Cleanup

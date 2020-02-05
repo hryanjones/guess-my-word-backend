@@ -1,3 +1,5 @@
+const { isProd } = require('./Utilities');
+
 const timezonelessDateMatcher = /^2[0-1][0-9]{2}-[0-1][0-9]-[0-9]{2}$/;
 const acceptableLists = ['normal', 'hard'];
 const wordMatcher = /^[a-z]{2,15}$/;
@@ -14,7 +16,7 @@ const simpleNonBreakingBadWordRegex = /(fuck|dicks|asshole(s)?|shit|cock|penis|c
 
 const reasons = {
     badDate: "Date isn't the correct format, like '2019-04-30'",
-    futureDate: 'Date is too far in the future, greater than UTC+14',
+    dateOutOfRange: 'Date is too far in the future, greater than UTC+14, or the past',
     badList: "wordlist isn't one of known lists",
     noName: 'You must give a name.',
     badTime: 'Time must be greater than 300 ms less than 24 hours',
@@ -32,12 +34,9 @@ function getInvalidReason(dateString, wordlist, name, time, guesses, leaders, sk
     if (numberOfLeaders >= MAX_NUMBER_OF_LEADERS_FOR_DAYS_WORD_LIST) {
         return `Sorry, we only accept ${MAX_NUMBER_OF_LEADERS_FOR_DAYS_WORD_LIST} entries for the board in a day.`;
     }
-
-    if (!timezonelessDateMatcher.test(dateString)) {
-        return `${reasons.badDate}. badDate: ${dateString}`;
-    }
-    if (dateIsTooFarInFuture(dateString)) {
-        return `${reasons.futureDate}. futureDate: ${dateString}`;
+    const invalidDateReason = getInvalidDateReason(dateString);
+    if (invalidDateReason) {
+        return invalidDateReason;
     }
     if (!acceptableLists.includes(wordlist)) {
         return `${reasons.badList}. badList: ${wordlist}`;
@@ -102,6 +101,30 @@ function getInvalidReason(dateString, wordlist, name, time, guesses, leaders, sk
     }
 }
 
+function getInvalidDateReason(dateString) {
+    if (!timezonelessDateMatcher.test(dateString)) {
+        return `${reasons.badDate}. badDate: ${dateString}`;
+    }
+    if (dateIsOutsideOfRange(dateString)) {
+        return `${reasons.dateOutOfRange}. dateOutOfRange: ${dateString}`;
+    }
+    return '';
+}
+
+function getInvalidBadNameReport({ reporterName, badName, date, wordlist }, leadersList) {
+    if (!leadersList) {
+        return `No leaders list for date and wordlist: ${date}, ${wordlist}.`;
+    }
+    if (!(reporterName in leadersList)) {
+        return `Reporter not in leaders list: ${reporterName}.`;
+    }
+    if (!(badName in leadersList)) {
+        return `Bad name not in leaders list: ${badName}`;
+    }
+
+    return getInvalidDateReason(date);
+}
+
 /* eslint-disable */
 // FIXME, this is currently just copy-pasted from frontend code, would be much better if we load this from the frontend on startup
 const possibleWords = {
@@ -123,14 +146,19 @@ function getDate(dateString) {
     return new Date(year, month - 1, day);
 }
 
-function dateIsTooFarInFuture(dateString) {
-    const date = getDate(dateString);
+function dateIsOutsideOfRange(dateString) {
+    const date = +getDate(dateString);
     const now = new Date();
     const minutesToUTC = now.getTimezoneOffset();
     // UTC+14 is the earliest possible date https://en.wikipedia.org/wiki/UTC%2B14:00
     const minutesToEarliestDate = minutesToUTC + (14 * 60);
     const earliestEpochTime = +now + (minutesToEarliestDate * 60 * 1000);
-    return +date > earliestEpochTime;
+    const minutesToLatestDate = minutesToUTC - (12 * 60); // latest is UTC-1200
+    const latestEpochTime = +now + (minutesToLatestDate * 60 * 1000);
+    return date > earliestEpochTime
+
+        // don't check late submit in non prod so tests can work (probably would be better to mock now or something)
+        || (isProd && date < latestEpochTime);
 }
 
 function getWord(date, difficulty) {
@@ -182,4 +210,5 @@ function getDOY(date) {
 module.exports = {
     getInvalidReason,
     NO_RESPONSE_INVALID_REASONS,
+    getInvalidBadNameReport,
 };

@@ -1,7 +1,8 @@
 'use strict';
 
-const { getInvalidReason } = require('./getInvalidReason');
+const { getInvalidReason, getInvalidBadNameReport } = require('./getInvalidReason');
 const { addLeaderAwards } = require('./LeaderAwards');
+const { isProd } = require('./Utilities');
 
 const leadersByDateAndListAndName = {}; // see below for structure
 /*
@@ -24,18 +25,18 @@ const THAT_GUY_NAME = 'THAT GUY 🤦‍♀️';
 
 const ALL_TIME_LEADERS_BY_LIST = {};
 
-let BAD_NAMES = {}; // see below for structure
+const BAD_NAMES_BY_NAME = {}; // see below for structure
 /*
 {
     [name: string]: {
         firstReportDate: Date,
-        reportedByOnFirstDay: array[],
-        reportedByAfterFirstDay: array[],
+        reportedByOnFirstDay: Set<string>,
+        reportedByAfterFirstDay: Set<string>,
     }
 */
 const LIMIT_FOR_FIRST_DAY_HIDING = 3;
 const LIMIT_FOR_ALL_TIME_HIDING = 7;
-const FIRST_DAY_TIME_IN_MS = 12 /* hours */ * 60 /* min/hour */ * 60 /* sec/min */ * 1000 /* ms */;
+const FIRST_DAY_TIME_IN_MS = 12 /* hours */ * 60 /* min/hour */ * 60 /* sec/min */ * 1000; /* ms */
 
 const InMemoryDatabase = {
     addLeader,
@@ -62,10 +63,7 @@ function addLeader({
     }
     invalidReason = invalidReason || addLeaderOrGetInvalidReason();
     if (invalidReason) {
-        const logMessage = `${submitTime} - ${name} - INVALID REASON: ${invalidReason}`;
-        console.log(logMessage); // print to log
-        console.warn(logMessage); // print to stderr so easier to see outside of log tail
-        return invalidReason;
+        return logAndReturnInvalidReason(invalidReason, name);
     }
 
     return '';
@@ -74,6 +72,13 @@ function addLeader({
         // the database could also return an invalid reason
         return addLeaderToDatabase(date, wordlist, name, { submitTime, time, guesses });
     }
+}
+
+function logAndReturnInvalidReason(reason, name, prefix) {
+    const logMessage = `${(new Date()).toISOString()} - ${name} - ${prefix || 'INVALID REASON'}: ${reason}`;
+    isProd && console.log(logMessage); // print to log
+    console.warn(logMessage); // print to stderr so easier to see outside of log tail
+    return reason;
 }
 
 function parseGuesses(bareGuesses) {
@@ -282,23 +287,32 @@ function numericSort(a, b) {
 
 /*
 TODO:
-1. validation (see comments below)
-2. Add in the badName return data to the frontend based on BAD_NAMES
-3. file backup and recovery of BAD_NAMES
+2. Add in the badName return data to the frontend based on BAD_NAMES_BY_NAME
+3. file backup and recovery of BAD_NAMES_BY_NAME
 4. frontend work to report
 */
-function addBadName({reporterName, badName, date}) {
-    // silently reject when date isn't valid
-    // silently reject reports where reporterName is not valid leaderboard name
-    // silently reject reports where badName isn't on the leaderboard for date
+function addBadName(report) {
+    const {
+        reporterName,
+        badName,
+        date,
+        wordlist,
+    } = report;
+    const leadersList = getLeadersForKeys(date, wordlist);
+    const invalidReason = getInvalidBadNameReport(report, leadersList);
+    if (invalidReason) {
+        return logAndReturnInvalidReason(invalidReason, reporterName, 'BAD NAME INVALID REPORT');
+    }
     const now = new Date();
-    const badActor = BAD_NAMES[badName] || getBaseBadNameRecord();
-    if ((now - badActor.firstReportDate) > FIRST_DAY_TIME_IN_MS) {
+    const badActor = BAD_NAMES_BY_NAME[badName] || getBaseBadNameRecord();
+    if (isFirstDayForBadActor(badActor, +now - FIRST_DAY_TIME_IN_MS)) {
         badActor.reportedByOnFirstDay.add(reporterName);
     } else {
         badActor.reportedByAfterFirstDay.add(reporterName);
     }
-    BAD_NAMES[badName] = badActor;
+    BAD_NAMES_BY_NAME[badName] = badActor;
+
+    return '';
 }
 
 function getBaseBadNameRecord() {
@@ -309,6 +323,32 @@ function getBaseBadNameRecord() {
     };
 }
 
+function isFirstDayForBadActor(badActor, epochFirstDayCutoff) {
+    return epochFirstDayCutoff < badActor.firstReportDate;
+}
 
+function markBadNames(leadersByName) {
+    getFilterableBadNames().forEach((badName) => {
+        const badLeader = leadersByName[badName];
+        if (badLeader) {
+            badLeader.badName = true;
+        }
+    });
+}
+
+function getFilterableBadNames() {
+    const badNames = Object.keys(BAD_NAMES_BY_NAME);
+    const now = new Date();
+    const epochFirstDayCutoff = +now - FIRST_DAY_TIME_IN_MS;
+    return badNames.filter((name) => {
+        const actor = BAD_NAMES_BY_NAME[name];
+        const firstDayReports = actor.reportedByOnFirstDay.size;
+        const laterReports = actor.reportedByAfterFirstDay.size;
+        if (isFirstDayForBadActor(actor, epochFirstDayCutoff)) {
+            return firstDayReports >= LIMIT_FOR_FIRST_DAY_HIDING;
+        }
+        return (firstDayReports + laterReports) >= LIMIT_FOR_ALL_TIME_HIDING;
+    });
+}
 
 module.exports = InMemoryDatabase;

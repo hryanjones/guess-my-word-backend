@@ -3,8 +3,8 @@ const https = require('https');
 const http = require('http');
 const bodyParser = require('body-parser');
 const fs = require('fs');
-const os = require('os');
 
+const { isProd } = require('./Utilities');
 const { NO_RESPONSE_INVALID_REASONS } = require('./getInvalidReason');
 const InMemoryDatabase = require('./InMemoryDatabase');
 const FileBackups = require('./FileBackups');
@@ -64,6 +64,7 @@ app.post('/leaderboard/:timezonelessDate/wordlist/:wordlist', (req, res) => {
         return setTimeout(respond, 30000);
     }
     const reasonWithoutContext = invalidReason.replace(INVALID_REASON_CONTEXT_MATCHER, '');
+    // console.log('reason without context -------', reasonWithoutContext)
     if (NO_RESPONSE_INVALID_REASONS.has(reasonWithoutContext)) {
         return setTimeout(respond, 2000);
     }
@@ -73,14 +74,31 @@ app.post('/leaderboard/:timezonelessDate/wordlist/:wordlist', (req, res) => {
 
     respond();
 
-    FileBackups.backupEntry({ date, wordlist, name, submitTime, time, guesses });
+    FileBackups.backupEntry({
+        date, wordlist, name, submitTime, time, guesses,
+    });
 
     function respond() {
         res.status(201).send({});
     }
 });
 
-if (os.userInfo().username === 'root') {
+app.post('/leaderboard/:timezonelessDate/wordlist/:wordlist/badname', (req, res) => {
+    const { timezonelessDate: date, wordlist } = req.params;
+    const data = req.body;
+
+    InMemoryDatabase.addBadName(Object.assign(
+        data,
+        {
+            date,
+            wordlist,
+        },
+    ));
+
+    res.status(201).send({});
+});
+
+if (isProd) {
     httpsServer.listen(443);
 } else {
     httpServer.listen(8080);
