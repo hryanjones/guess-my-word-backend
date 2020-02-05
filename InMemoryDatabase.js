@@ -322,7 +322,6 @@ function addBadName(report) {
     return BAD_NAMES_BY_NAME;
 
     function addUniqueReporter(name, list) {
-        console.log('list', list)
         if (!list.includes(name)) {
             list.push(name);
         }

@@ -28,13 +28,13 @@ const reasons = {
 
 const NO_RESPONSE_INVALID_REASONS = new Set(Object.values(reasons));
 
-function getInvalidReason(dateString, wordlist, name, time, guesses, leaders, skipExpensiveChecks) {
+function getInvalidReason(dateString, wordlist, name, time, guesses, leaders, fromBackup) {
     leaders = leaders || {};
     const numberOfLeaders = (leaders && Object.keys(leaders).length) || 0;
     if (numberOfLeaders >= MAX_NUMBER_OF_LEADERS_FOR_DAYS_WORD_LIST) {
         return `Sorry, we only accept ${MAX_NUMBER_OF_LEADERS_FOR_DAYS_WORD_LIST} entries for the board in a day.`;
     }
-    const invalidDateReason = getInvalidDateReason(dateString);
+    const invalidDateReason = getInvalidDateReason(dateString, fromBackup);
     if (invalidDateReason) {
         return invalidDateReason;
     }
@@ -79,7 +79,7 @@ function getInvalidReason(dateString, wordlist, name, time, guesses, leaders, sk
     }
 
     const joinedGuesses = guesses.join(',');
-    if (!skipExpensiveChecks && Object.values(leaders).some(sameGuessesAndTime)) {
+    if (!fromBackup && Object.values(leaders).some(sameGuessesAndTime)) {
         return `${reasons.sameWordsAndTime}. name: ${name}, time: ${time}`;
     }
 
@@ -101,11 +101,11 @@ function getInvalidReason(dateString, wordlist, name, time, guesses, leaders, sk
     }
 }
 
-function getInvalidDateReason(dateString) {
+function getInvalidDateReason(dateString, fromBackup) {
     if (!timezonelessDateMatcher.test(dateString)) {
         return `${reasons.badDate}. badDate: ${dateString}`;
     }
-    if (dateIsOutsideOfRange(dateString)) {
+    if (dateIsOutsideOfRange(dateString, fromBackup)) {
         return `${reasons.dateOutOfRange}. dateOutOfRange: ${dateString}`;
     }
     return '';
@@ -146,7 +146,7 @@ function getDate(dateString) {
     return new Date(year, month - 1, day);
 }
 
-function dateIsOutsideOfRange(dateString) {
+function dateIsOutsideOfRange(dateString, fromBackup) {
     const date = +getDate(dateString);
     const now = new Date();
     const minutesToUTC = now.getTimezoneOffset();
@@ -158,7 +158,7 @@ function dateIsOutsideOfRange(dateString) {
     return date > earliestEpochTime
 
         // don't check late submit in non prod so tests can work (probably would be better to mock now or something)
-        || (isProd && date < latestEpochTime);
+        || (!fromBackup && isProd && date < latestEpochTime);
 }
 
 function getWord(date, difficulty) {
