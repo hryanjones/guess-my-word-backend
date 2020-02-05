@@ -87,13 +87,17 @@ app.post('/leaderboard/:timezonelessDate/wordlist/:wordlist/badname', (req, res)
     const { timezonelessDate: date, wordlist } = req.params;
     const data = req.body;
 
-    InMemoryDatabase.addBadName(Object.assign(
+    const BAD_NAMES = InMemoryDatabase.addBadName(Object.assign(
         data,
         {
             date,
             wordlist,
         },
     ));
+
+    if (BAD_NAMES) {
+        FileBackups.backupBadNames(BAD_NAMES);
+    }
 
     res.status(201).send({});
 });

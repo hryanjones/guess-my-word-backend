@@ -12,6 +12,7 @@ rm backupLeaderboards/2019-05-01_hard.csv 2> /dev/null
 rm /tmp/recovery-response.json 2> /dev/null
 rm /tmp/response.json 2> /dev/null
 rm /tmp/expected.json 2> /dev/null
+rm BAD_NAMES.json 2> /dev/null
 
 echo "Cleaned up test files."
 
@@ -170,8 +171,7 @@ curl -Is -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=
     | grep -q "HTTP/1.1 201" || error_exit "only one guess 201"
 
 
-echo "Good job, it works! 👍"
-echo "If you want to run the max number of leaders test, uncomment it."
+echo "NOTE: If you want to run the max number of leaders test, uncomment it (it takes a long time)."
 
 # # Max number of leaders
 # for LEADER in {5..19999}; do
@@ -203,7 +203,23 @@ curl -s "localhost:8080/leaderboard/2019-04-30/wordlist/normal" \
     && diff -q /tmp/response.json /tmp/expected.json \
     || error_exit "didn't correctly apply badName from 3 reports" "meld /tmp/response.json /tmp/expected.json"
 
+## Bad names recovery test
 
+kill "$server_pid"
+node ./index.js &
+sleep 3
+server_pid="$!"
+
+echo -n '[{"submitTime":"","time":2000,"numberOfGuesses":2,"name":"goobley","awards":"🍀 lucky?","badName":true},{"submitTime":"","time":30000,"numberOfGuesses":3,"name":"\"blerg\"","awards":"🍀 lucky?"},{"submitTime":"","time":301,"numberOfGuesses":2,"name":"mergen","awards":"🍀 lucky?"},{"submitTime":"","time":1140,"numberOfGuesses":4,"name":"purg","awards":"🍀 lucky?"},{"submitTime":"","time":5000,"numberOfGuesses":5,"name":"Looben Doo","awards":"🍀 lucky?"},{"submitTime":"","time":600,"numberOfGuesses":6,"name":"Mukilteo👍","awards":"🍀 lucky?"},{"submitTime":"","time":70000,"numberOfGuesses":7,"name":"Dublin","awards":"🏆 fastest, 🏆 fewest guesses, 🏅 first guesser"},{"submitTime":"","time":800000,"numberOfGuesses":8,"name":"Foogey"},{"submitTime":"","time":800000,"numberOfGuesses":8,"name":"Yeah recovery worked"},{"submitTime":"","time":2000,"numberOfGuesses":2,"name":"R","awards":"🍀 lucky?"}]' > /tmp/expected.json
+curl -s "localhost:8080/leaderboard/2019-04-30/wordlist/normal" \
+    | sed -e 's/"submitTime":"[^"]*"/"submitTime":""/g' \
+    > /tmp/response.json\
+    && diff -q /tmp/response.json /tmp/expected.json \
+    || error_exit "wasn't able to recover bad names from backup" "meld /tmp/response.json /tmp/expected.json"
+
+kill "$server_pid"
+
+echo "Good job, it works! 👍"
 
 # Cleanup
 ## remove backup files & repsonse
@@ -215,3 +231,4 @@ rm backupLeaderboards/2019-05-04_normal.csv
 rm backupLeaderboards/2019-05-01_hard.csv
 rm /tmp/response.json
 rm /tmp/expected.json
+rm BAD_NAMES.json

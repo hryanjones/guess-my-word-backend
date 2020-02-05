@@ -25,13 +25,13 @@ const THAT_GUY_NAME = 'THAT GUY 🤦‍♀️';
 
 const ALL_TIME_LEADERS_BY_LIST = {};
 
-const BAD_NAMES_BY_NAME = {}; // see below for structure
+let BAD_NAMES_BY_NAME = {}; // see below for structure
 /*
 {
     [name: string]: {
         firstReportDate: Date,
-        reportedByOnFirstDay: Set<string>,
-        reportedByAfterFirstDay: Set<string>,
+        reportedByOnFirstDay: String[],
+        reportedByAfterFirstDay: String[],
     }
 */
 const LIMIT_FOR_FIRST_DAY_HIDING = 3;
@@ -42,6 +42,12 @@ const InMemoryDatabase = {
     addLeader,
     getLeadersArray,
     addBadName,
+    setBadNames(badNames) {
+        for (const name in badNames) {
+            badNames[name].firstReportDate = new Date(badNames[name].firstReportDate);
+        }
+        BAD_NAMES_BY_NAME = badNames;
+    },
 };
 
 function addLeader({
@@ -76,7 +82,7 @@ function addLeader({
 
 function logAndReturnInvalidReason(reason, name, prefix) {
     const logMessage = `${(new Date()).toISOString()} - ${name} - ${prefix || 'INVALID REASON'}: ${reason}`;
-    isProd && console.log(logMessage); // print to log
+    if (isProd) console.log(logMessage); // print to log
     console.warn(logMessage); // print to stderr so easier to see outside of log tail
     return reason;
 }
@@ -301,25 +307,33 @@ function addBadName(report) {
     const leadersList = getLeadersForKeys(date, wordlist);
     const invalidReason = getInvalidBadNameReport(report, leadersList);
     if (invalidReason) {
-        return logAndReturnInvalidReason(invalidReason, reporterName, 'BAD NAME INVALID REPORT');
+        logAndReturnInvalidReason(invalidReason, reporterName, 'BAD NAME INVALID REPORT');
+        return null;
     }
     const now = new Date();
     const badActor = BAD_NAMES_BY_NAME[badName] || getBaseBadNameRecord();
     if (isFirstDayForBadActor(badActor, +now - FIRST_DAY_TIME_IN_MS)) {
-        badActor.reportedByOnFirstDay.add(reporterName);
+        addUniqueReporter(reporterName, badActor.reportedByOnFirstDay);
     } else {
-        badActor.reportedByAfterFirstDay.add(reporterName);
+        addUniqueReporter(reporterName, badActor.reportedByAfterFirstDay);
     }
     BAD_NAMES_BY_NAME[badName] = badActor;
 
-    return '';
+    return BAD_NAMES_BY_NAME;
+
+    function addUniqueReporter(name, list) {
+        console.log('list', list)
+        if (!list.includes(name)) {
+            list.push(name);
+        }
+    }
 }
 
 function getBaseBadNameRecord() {
     return {
         firstReportDate: new Date(),
-        reportedByOnFirstDay: new Set(),
-        reportedByAfterFirstDay: new Set(),
+        reportedByOnFirstDay: [],
+        reportedByAfterFirstDay: [],
     };
 }
 
@@ -342,8 +356,8 @@ function getFilterableBadNames() {
     const epochFirstDayCutoff = +now - FIRST_DAY_TIME_IN_MS;
     return badNames.filter((name) => {
         const actor = BAD_NAMES_BY_NAME[name];
-        const firstDayReports = actor.reportedByOnFirstDay.size;
-        const laterReports = actor.reportedByAfterFirstDay.size;
+        const firstDayReports = actor.reportedByOnFirstDay.length;
+        const laterReports = actor.reportedByAfterFirstDay.length;
         if (isFirstDayForBadActor(actor, epochFirstDayCutoff)) {
             return firstDayReports >= LIMIT_FOR_FIRST_DAY_HIDING;
         }
