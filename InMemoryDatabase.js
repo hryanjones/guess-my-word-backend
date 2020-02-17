@@ -48,6 +48,7 @@ const InMemoryDatabase = {
         }
         BAD_NAMES_BY_NAME = badNames;
     },
+    dumpDBToCSV,
 };
 
 function addLeader({
@@ -363,5 +364,31 @@ function getFilterableBadNames() {
         return (firstDayReports + laterReports) >= LIMIT_FOR_ALL_TIME_HIDING;
     });
 }
+
+function dumpDBToCSV() {
+    console.log('date,wordlist,word,name,submitTime,time,numberOfGuesses,guesses');
+    for (const date in leadersByDateAndListAndName) {
+        const leadersByList = leadersByDateAndListAndName[date];
+        for (const wordlist in leadersByList) {
+            const leadersByName = leadersByList[wordlist];
+            for (let name in leadersByName) {
+                const { time, submitTime, guesses } = leadersByName[name];
+                name = name.replace(/"/g, '\\"')
+                const numberOfGuesses = guesses.length;
+                const word = guesses[numberOfGuesses - 1];
+                console.log(`${date},${wordlist},${word},"${name}",${submitTime},${time},${numberOfGuesses},"${guesses.join(' ')}"`);
+            }
+        }
+    }
+}
+
+// [DateString]: {
+//     [wordList: 'normal' or 'hard']: {
+//         [name]: {
+//             guesses: String[],
+//                 time: Integer, // ms
+//                     submitTime: ISODateString,
+//             }
+//     }
 
 module.exports = InMemoryDatabase;
