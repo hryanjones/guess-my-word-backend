@@ -1,8 +1,16 @@
 #! /bin/bash
 
+numberBackupFiles=`ls backupLeaderboards | wc -l`
+if [ $numberBackupFiles -gt 7 ]; then
+    echo "Please:"
+    echo "  1. Make sure you're not running the test in PROD"
+    echo "  2. delete extra backups with"
+    echo "    rm -rf backupLeaderboards/*"
+    exit 1
+fi
 
 # Pre-Cleanup
-## remove backup files & repsonse
+## remove backup files & response
 rm backupLeaderboards/2019-04-30_normal.csv 2> /dev/null
 rm backupLeaderboards/2019-05-01_normal.csv 2> /dev/null
 rm backupLeaderboards/2019-05-02_normal.csv 2> /dev/null
@@ -32,7 +40,7 @@ nc -zv localhost 8080 2> /dev/null && read -p "The server is running, stop it so
 
 node ./index &
 server_pid="$!"
-sleep 2 # wait for server to start
+sleep 4 # wait for server to start
 
 # Test validation that has a return
 
