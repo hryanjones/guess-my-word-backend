@@ -153,12 +153,15 @@ function dateIsOutsideOfRange(dateString, fromBackup) {
     // UTC+14 is the earliest possible date https://en.wikipedia.org/wiki/UTC%2B14:00
     const minutesToEarliestDate = minutesToUTC + (14 * 60);
     const earliestEpochTime = +now + (minutesToEarliestDate * 60 * 1000);
-    const minutesToLatestDate = minutesToUTC - (12 * 60); // latest is UTC-1200
-    const latestEpochTime = +now + (minutesToLatestDate * 60 * 1000);
-    return date > earliestEpochTime
+    // const minutesToLatestDate = minutesToUTC - (12 * 60); // latest is UTC-1200
+    // const latestEpochTime = +now + (minutesToLatestDate * 60 * 1000);
+    return date > earliestEpochTime;
 
-        // don't check late submit in non prod so tests can work (probably would be better to mock now or something)
-        || (!fromBackup && isProd && date < latestEpochTime);
+    // // don't check late submit in non prod so tests can work (probably would be better
+    // // to mock now or something)
+
+    // // FIXME something is really broken with this, but only in prod
+    // || (!fromBackup && isProd && && date < latestEpochTime);
 }
 
 function getWord(date, difficulty) {
