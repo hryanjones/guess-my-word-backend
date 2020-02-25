@@ -35,9 +35,10 @@ app.use(bodyParser.json());
 app.get('/', (req, res) => res.status(201).send());
 
 app.get('/leaderboard/:timezonelessDate/wordlist/:wordlist', (req, res) => {
+    const { name, key } = req.query; // required for making a request that contains user guesses
     const { timezonelessDate: date, wordlist } = req.params;
     res.send(
-        InMemoryDatabase.getLeadersArray(date, wordlist)
+        InMemoryDatabase.getLeadersArray(date, wordlist, name, key)
     );
 });
 
@@ -49,7 +50,7 @@ app.post('/leaderboard/:timezonelessDate/wordlist/:wordlist', (req, res) => {
     // might be better to just rewrite tests to use JSON :\;
     const data = Object.keys(req.query).length ? req.query : req.body;
 
-    const { time, guesses } = data;
+    const { time, guesses, areGuessesPublic } = data;
 
     const name = (data.name || '').trim();
     const submitTime = (new Date()).toISOString();
@@ -61,6 +62,7 @@ app.post('/leaderboard/:timezonelessDate/wordlist/:wordlist', (req, res) => {
         time,
         submitTime,
         guesses,
+        areGuessesPublic,
     });
     if (invalidReason === 'inappropriate') {
         return setTimeout(respond, 30000);
@@ -77,7 +79,7 @@ app.post('/leaderboard/:timezonelessDate/wordlist/:wordlist', (req, res) => {
     respond();
 
     FileBackups.backupEntry({
-        date, wordlist, name, submitTime, time, guesses,
+        date, wordlist, name, submitTime, time, guesses, areGuessesPublic,
     });
 
     function respond() {

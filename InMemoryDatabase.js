@@ -58,6 +58,7 @@ function addLeader({
     guesses: bareGuesses,
     time: bareTime,
     submitTime,
+    areGuessesPublic,
 }, fromBackup = false) {
     const time = parseInt(bareTime, 10);
     const guesses = parseGuesses(bareGuesses);
@@ -76,8 +77,9 @@ function addLeader({
     return '';
 
     function addLeaderOrGetInvalidReason() {
+        areGuessesPublic = areGuessesPublic === 'true';
         // the database could also return an invalid reason
-        return addLeaderToDatabase(date, wordlist, name, { submitTime, time, guesses });
+        return addLeaderToDatabase(date, wordlist, name, { submitTime, time, guesses, areGuessesPublic });
     }
 }
 
@@ -104,7 +106,7 @@ function addLeaderToDatabase(date, wordlist, name, data) {
     return '';
 }
 
-function getLeadersArray(date, list) {
+function getLeadersArray(date, list, name, key) {
     let leaders;
     const type = date === 'ALL' ? 'allTime' : 'normal';
     const allTimeLeaders = getAllTimeLeaderboard(list, /* prefer cached if */ type === 'normal');
@@ -114,7 +116,8 @@ function getLeadersArray(date, list) {
         console.log(`${now.toISOString()} - Fetching all time leaderboard.`);
     } else {
         leaders = getLeadersForKeys(date, list);
-        leaders = sanitizeLeaders(leaders);
+        const includeGuesses = name && leaders[name] && leaders[name].guesses[0] === key;
+        leaders = sanitizeLeaders(leaders, includeGuesses);
     }
     ALL_TIME_LEADERS_BY_LIST[list] = allTimeLeaders; // cache all time leaders
 
@@ -137,22 +140,28 @@ function instantiateLeaderList(date, list) {
     return leadersByDateAndListAndName[date][list];
 }
 
-function sanitizeLeaders(leaders) {
+function sanitizeLeaders(leaders, includeGuesses) {
     const convertedLeaders = {};
     for (const leaderName in leaders) {
         const leaderData = leaders[leaderName];
-        convertedLeaders[leaderName] = convertLeader(leaderData);
+        convertedLeaders[leaderName] = convertLeader(leaderData, includeGuesses);
     }
     return convertedLeaders;
 }
 
-function convertLeader(leaderData) {
+function convertLeader(leaderData, includeGuesses) {
     const leaderCopy = Object.assign(
         {},
         leaderData,
         { numberOfGuesses: leaderData.guesses.length },
     );
-    delete leaderCopy.guesses;
+    if (leaderData.time === 400) {
+        console.log('leaderData ===', leaderData)
+    }
+    if (!includeGuesses || !leaderCopy.areGuessesPublic) {
+        delete leaderCopy.guesses;
+    }
+    delete leaderCopy.areGuessesPublic;
 
     if (leaderCopy.weeklyPlayRate) {
         leaderCopy.weeklyPlayRate = leaderCopy.weeklyPlayRate.toFixed(2);

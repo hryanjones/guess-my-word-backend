@@ -100,9 +100,27 @@ curl -s -X POST "localhost:8080/leaderboard/2019-05-01/wordlist/normal?guesses=b
 curl -s -X POST "localhost:8080/leaderboard/2019-05-01/wordlist/normal?guesses=blue,put,shoot,blah,whatever,fly,something,work&name=Dublin&time=800000" > /dev/null
 
 # Add leaders for a different day, hard list
-curl -s -X POST "localhost:8080/leaderboard/2019-05-01/wordlist/hard?guesses=something,aberration&name=mergen&time=400" > /dev/null
+curl -s -X POST "localhost:8080/leaderboard/2019-05-01/wordlist/hard?guesses=something,aberration&name=mergen&time=400&areGuessesPublic=true" > /dev/null
 curl -s -X POST "localhost:8080/leaderboard/2019-05-01/wordlist/hard?guesses=cry,whimper,fly,aberration&name=purg&time=401" > /dev/null
 curl -s -X POST "localhost:8080/leaderboard/2019-05-01/wordlist/hard?guesses=barf,map,food,name,aberration&name=Looben%20Doo&time=5000" > /dev/null
+
+
+# Test that guesses come back when correct name and key given
+
+echo -n '[{"submitTime":"","time":400,"guesses":["something","aberration"],"numberOfGuesses":2,"name":"mergen","awards":"🍀 lucky?"},{"submitTime":"","time":401,"numberOfGuesses":4,"name":"purg","awards":"🍀 lucky?"},{"submitTime":"","time":5000,"numberOfGuesses":5,"name":"Looben Doo","awards":"🍀 lucky?"}]' > /tmp/expected.json
+curl -s "localhost:8080/leaderboard/2019-05-01/wordlist/hard?name=purg&key=cry" | \
+    sed -e 's/"submitTime":"[^"]*"/"submitTime":""/g' \
+    > /tmp/response.json  \
+    && diff -q /tmp/response.json /tmp/expected.json || error_exit "unexpected JSON response for guesses" "meld /tmp/response.json /tmp/expected.json"
+
+# Test that guesses DON'T come back when correct name and incorrect key given
+
+echo -n '[{"submitTime":"","time":400,"numberOfGuesses":2,"name":"mergen","awards":"🍀 lucky?"},{"submitTime":"","time":401,"numberOfGuesses":4,"name":"purg","awards":"🍀 lucky?"},{"submitTime":"","time":5000,"numberOfGuesses":5,"name":"Looben Doo","awards":"🍀 lucky?"}]' > /tmp/expected.json
+curl -s "localhost:8080/leaderboard/2019-05-01/wordlist/hard?name=purg&key=bye" | \
+    sed -e 's/"submitTime":"[^"]*"/"submitTime":""/g' \
+    > /tmp/response.json  \
+    && diff -q /tmp/response.json /tmp/expected.json || error_exit "unexpected JSON response for guesses" "meld /tmp/response.json /tmp/expected.json"
+
 
 # Test getting all time leaderboard data
 
@@ -129,18 +147,22 @@ ls backupLeaderboards/2019-04-30_normal.csv > /dev/null || error_exit "didn't cr
 head -n 1 backupLeaderboards/2019-04-30_normal.csv \
     | grep -q "name,submitTime,timeInMilliSeconds,guesses" || error_exit "backup file header isn't correct"
 
-grep -E ',[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{3}Z,[0-9]+,"[a-z,]+"$' backupLeaderboards/2019-04-30_normal.csv | wc -l | grep -qE "^8$" || error_exit "expected different number of entries in backup file"
+grep -E ',[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{3}Z,[0-9]+,"[a-z,]+",(true|false)$' backupLeaderboards/2019-04-30_normal.csv | wc -l | grep -qE "^8$" || error_exit "expected different number of entries in backup file"
 
 ## other backup file
 head -n 1 backupLeaderboards/2019-05-01_hard.csv \
-    | grep -q "name,submitTime,timeInMilliSeconds,guesses" || error_exit "backup file header isn't correct"
+    | grep -q "name,submitTime,timeInMilliSeconds,guesses,areGuessesPublic" || error_exit "backup file header isn't correct"
 
-grep -E ',[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{3}Z,[0-9]+,"[a-z,]+"$' backupLeaderboards/2019-05-01_hard.csv | wc -l | grep -qE "^3$" || error_exit "expected different number of entries in 2nd backup file"
+grep -E ',[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{3}Z,[0-9]+,"[a-z,]+",(true|false)$' backupLeaderboards/2019-05-01_hard.csv | wc -l | grep -qE "^3$" || error_exit "expected different number of entries in 2nd backup file"
 
 
 # Recovering from backup files
 
 kill "$server_pid"
+
+# test areGuessesPublic can handle data without headers
+sed -i  -e 's/,areGuessesPublic$//' -e 's/,true$//' -e 's/,false$//' backupLeaderboards/2019-04-30_normal.csv
+exit
 node ./index.js &
 sleep 3
 server_pid="$!"

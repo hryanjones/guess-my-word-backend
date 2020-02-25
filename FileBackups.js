@@ -4,8 +4,8 @@ const InMemoryDatabase = require('./InMemoryDatabase');
 const backupFileStreamsByDateAndWordlist = {};
 const BAD_NAMES_FILE = './BAD_NAMES.json';
 
-function backupEntry({ date, wordlist, name, submitTime, time, guesses }) {
-    const data = [sanitizeName(name), submitTime, time, quote(guesses)];
+function backupEntry({ date, wordlist, name, submitTime, time, guesses, areGuessesPublic }) {
+    const data = [sanitizeName(name), submitTime, time, quote(guesses), Boolean(areGuessesPublic)];
     const stream = getStream(date, wordlist);
     stream.write(`${data.join(',')}\n`);
 }
@@ -30,7 +30,7 @@ function backupBadNames(badNames) {
     }
 }
 
-const backupFileHeader = 'name,submitTime,timeInMilliSeconds,guesses\n';
+const backupFileHeader = 'name,submitTime,timeInMilliSeconds,guesses,areGuessesPublic\n';
 
 function getStream(date, wordlist) {
     if (!backupFileStreamsByDateAndWordlist[date]) {
@@ -51,7 +51,7 @@ function getStream(date, wordlist) {
     return stream;
 }
 
-const DATA_LINE_DESTRUCTURE_PATTERN = /^"(.*)",([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{3}Z),([0-9]+),"([a-z,]+)"$/;
+const DATA_LINE_DESTRUCTURE_PATTERN = /^"(.*)",([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{3}Z),([0-9]+),"([a-z,]+)",?(true|false)?$/;
 // Example of a data line:
 // "Foogey",2019-05-12T00:14:38.329Z,800000,"acrid,whatever,finger,put,shoot,blah,eight,either"
 
@@ -73,9 +73,10 @@ function recoverInMemoryDatabaseFromFiles() {
             .slice(1, -1); // remove first and last lines as it's a header and a newline
 
         lines.forEach((line) => {
-            let [, name, submitTime, time, guesses] = line.match(DATA_LINE_DESTRUCTURE_PATTERN);
+            const lineMatch = line.match(DATA_LINE_DESTRUCTURE_PATTERN);
+            let [, name, submitTime, time, guesses, areGuessesPublic] = lineMatch;
             name = name.replace(/\\"/g, '"');
-            InMemoryDatabase.addLeader({ date, wordlist, name, guesses, time, submitTime }, true);
+            InMemoryDatabase.addLeader({ date, wordlist, name, guesses, time, submitTime, areGuessesPublic }, true);
         });
 
         console.log(`\tRecovered ${lines.length} leaders from ${fileName}`);
