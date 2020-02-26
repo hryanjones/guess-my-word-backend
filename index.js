@@ -9,8 +9,10 @@ const { NO_RESPONSE_INVALID_REASONS } = require('./getInvalidReason');
 const InMemoryDatabase = require('./InMemoryDatabase');
 const FileBackups = require('./FileBackups');
 
-const privateKey = fs.readFileSync('/etc/letsencrypt/live/home.hryanjones.com/privkey.pem', 'utf8');
-const certificate = fs.readFileSync('/etc/letsencrypt/live/home.hryanjones.com/fullchain.pem', 'utf8');
+// const hostname = 'home.hryanjones.com';
+const hostname = 'ec2.hryanjones.com';
+const privateKey = fs.readFileSync(`/etc/letsencrypt/live/${hostname}/privkey.pem`, 'utf8');
+const certificate = fs.readFileSync(`/etc/letsencrypt/live/${hostname}/fullchain.pem`, 'utf8');
 const app = express();
 const credentials = { key: privateKey, cert: certificate };
 const httpsServer = https.createServer(credentials, app);
