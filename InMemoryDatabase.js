@@ -81,7 +81,7 @@ function addLeader({
     return '';
 
     function addLeaderOrGetInvalidReason() {
-        areGuessesPublic = areGuessesPublic === 'true';
+        areGuessesPublic = areGuessesPublic === 'true' || areGuessesPublic === true;
         // the database could also return an invalid reason
         return addLeaderToDatabase(date, wordlist, name, { submitTime, time, guesses, areGuessesPublic });
     }

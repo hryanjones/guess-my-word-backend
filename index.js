@@ -9,14 +9,7 @@ const { NO_RESPONSE_INVALID_REASONS } = require('./getInvalidReason');
 const InMemoryDatabase = require('./InMemoryDatabase');
 const FileBackups = require('./FileBackups');
 
-// const hostname = 'home.hryanjones.com';
-const hostname = 'ec2.hryanjones.com';
-const privateKey = fs.readFileSync(`/etc/letsencrypt/live/${hostname}/privkey.pem`, 'utf8');
-const certificate = fs.readFileSync(`/etc/letsencrypt/live/${hostname}/fullchain.pem`, 'utf8');
 const app = express();
-const credentials = { key: privateKey, cert: certificate };
-const httpsServer = https.createServer(credentials, app);
-const httpServer = http.createServer(app);
 
 FileBackups.recoverInMemoryDatabaseFromFiles();
 InMemoryDatabase.getLeadersArray('ALL', 'hard'); // cache the leaderboard
@@ -109,7 +102,15 @@ app.post('/leaderboard/:timezonelessDate/wordlist/:wordlist/badname', (req, res)
 });
 
 if (isProd) {
+    // const hostname = 'home.hryanjones.com';
+    const hostname = 'ec2.hryanjones.com';
+    const privateKey = fs.readFileSync(`/etc/letsencrypt/live/${hostname}/privkey.pem`, 'utf8');
+    const certificate = fs.readFileSync(`/etc/letsencrypt/live/${hostname}/fullchain.pem`, 'utf8');
+    const credentials = { key: privateKey, cert: certificate };
+    const httpsServer = https.createServer(credentials, app);
+
     httpsServer.listen(443);
 } else {
+    const httpServer = http.createServer(app);
     httpServer.listen(8080);
 }

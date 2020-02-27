@@ -10,10 +10,6 @@ const maxTime = 24 * 60 * 60 * 1000; // max time is 24 hours
 const MAX_NUMBER_OF_LEADERS_FOR_DAYS_WORD_LIST = 20000;
 const GRAND_FATHERED_SHORT_NAMES = new Set('RjDTZ'.split(''));
 
-const simpleBadWordRegex = /\b(asses|twat)\b/;
-
-const simpleNonBreakingBadWordRegex = /(fuck|dicks|asshole(s)?|shit|cock|penis|cunt|vagina|twats|boob|nigger|kike|puss(y|ies)|fag(s|got)|whore|bitch)/;
-
 const reasons = {
     badDate: "Date isn't the correct format, like '2019-04-30'",
     dateOutOfRange: 'Date is too far in the future, greater than UTC+14, or the past',
@@ -98,6 +94,9 @@ function getInvalidReason(dateString, wordlist, name, time, guesses, leaders, fr
             && savedLeader.guesses.join(',') === joinedGuesses;
     }
 }
+
+const simpleBadWordRegex = /\b(asses|twat)\b/;
+const simpleNonBreakingBadWordRegex = /(fuck|dicks|asshole(s)?|shit|cock|penis|cunt|vagina|twats|boob|nigger|kike|puss(y|ies)|fag(s|got)|whore|bitch)/;
 
 function hasBadWord(lowercaseString) {
     return simpleNonBreakingBadWordRegex.test(lowercaseString)
