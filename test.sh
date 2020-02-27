@@ -100,14 +100,14 @@ curl -s -X POST "localhost:8080/leaderboard/2019-05-01/wordlist/normal?guesses=b
 curl -s -X POST "localhost:8080/leaderboard/2019-05-01/wordlist/normal?guesses=blue,put,shoot,blah,whatever,fly,something,work&name=Dublin&time=800000" > /dev/null
 
 # Add leaders for a different day, hard list
-curl -s -X POST "localhost:8080/leaderboard/2019-05-01/wordlist/hard?guesses=something,aberration&name=mergen&time=400&areGuessesPublic=true" > /dev/null
+curl -s -X POST "localhost:8080/leaderboard/2019-05-01/wordlist/hard?guesses=fuck,aberration&name=mergen&time=400&areGuessesPublic=true" > /dev/null
 curl -s -X POST "localhost:8080/leaderboard/2019-05-01/wordlist/hard?guesses=cry,whimper,fly,aberration&name=purg&time=401" > /dev/null
 curl -s -X POST "localhost:8080/leaderboard/2019-05-01/wordlist/hard?guesses=barf,map,food,name,aberration&name=Looben%20Doo&time=5000" > /dev/null
 
 
 # Test that guesses come back when correct name and key given
 
-echo -n '[{"submitTime":"","time":400,"guesses":["something","aberration"],"numberOfGuesses":2,"name":"mergen","awards":"🍀 lucky?"},{"submitTime":"","time":401,"numberOfGuesses":4,"name":"purg","awards":"🍀 lucky?"},{"submitTime":"","time":5000,"numberOfGuesses":5,"name":"Looben Doo","awards":"🍀 lucky?"}]' > /tmp/expected.json
+echo -n '[{"submitTime":"","time":400,"guesses":["🙊","aberration"],"numberOfGuesses":2,"name":"mergen","awards":"🍀 lucky?"},{"submitTime":"","time":401,"numberOfGuesses":4,"name":"purg","awards":"🍀 lucky?"},{"submitTime":"","time":5000,"numberOfGuesses":5,"name":"Looben Doo","awards":"🍀 lucky?"}]' > /tmp/expected.json
 curl -s "localhost:8080/leaderboard/2019-05-01/wordlist/hard?name=purg&key=cry" | \
     sed -e 's/"submitTime":"[^"]*"/"submitTime":""/g' \
     > /tmp/response.json  \
@@ -162,7 +162,6 @@ kill "$server_pid"
 
 # test areGuessesPublic can handle data without headers
 sed -i  -e 's/,areGuessesPublic$//' -e 's/,true$//' -e 's/,false$//' backupLeaderboards/2019-04-30_normal.csv
-exit
 node ./index.js &
 sleep 3
 server_pid="$!"

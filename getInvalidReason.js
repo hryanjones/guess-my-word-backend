@@ -86,19 +86,22 @@ function getInvalidReason(dateString, wordlist, name, time, guesses, leaders, fr
     return '';
 
     function isInappropriateName(input) {
-        const lowerCaseName = input.toLowerCase();
         const otherWord = lookupOtherWord(dateString, wordlist);
-        const lowerCaseNameWithNonSpaceCharsRemoved = lowerCaseName.replace(/(_|-)/g, '');
+        const lowerCaseNameWithNonSpaceCharsRemoved = input.toLowerCase().replace(/(_|-)/g, '');
         const hasAnswersMatcher = new RegExp(`\\b(${expectedWord}|${otherWord})\\b`);
-        return simpleNonBreakingBadWordRegex.test(lowerCaseNameWithNonSpaceCharsRemoved)
-            || simpleBadWordRegex.test(lowerCaseNameWithNonSpaceCharsRemoved)
-            || hasAnswersMatcher.test(lowerCaseName);
+        return hasBadWord(lowerCaseNameWithNonSpaceCharsRemoved)
+            || hasAnswersMatcher.test(lowerCaseNameWithNonSpaceCharsRemoved);
     }
 
     function sameGuessesAndTime(savedLeader) {
         return savedLeader.time === time
             && savedLeader.guesses.join(',') === joinedGuesses;
     }
+}
+
+function hasBadWord(lowercaseString) {
+    return simpleNonBreakingBadWordRegex.test(lowercaseString)
+        || simpleBadWordRegex.test(lowercaseString);
 }
 
 function getInvalidDateReason(dateString, fromBackup) {
@@ -214,4 +217,5 @@ module.exports = {
     getInvalidReason,
     NO_RESPONSE_INVALID_REASONS,
     getInvalidBadNameReport,
+    hasBadWord,
 };

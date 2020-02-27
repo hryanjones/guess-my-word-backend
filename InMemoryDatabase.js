@@ -1,6 +1,10 @@
 'use strict';
 
-const { getInvalidReason, getInvalidBadNameReport } = require('./getInvalidReason');
+const {
+    getInvalidReason,
+    getInvalidBadNameReport,
+    hasBadWord,
+} = require('./getInvalidReason');
 const { addLeaderAwards } = require('./LeaderAwards');
 const { isProd } = require('./Utilities');
 
@@ -155,11 +159,10 @@ function convertLeader(leaderData, includeGuesses) {
         leaderData,
         { numberOfGuesses: leaderData.guesses.length },
     );
-    if (leaderData.time === 400) {
-        console.log('leaderData ===', leaderData)
-    }
     if (!includeGuesses || !leaderCopy.areGuessesPublic) {
         delete leaderCopy.guesses;
+    } else {
+        leaderCopy.guesses = leaderCopy.guesses.map(removeInappropriateGuesses);
     }
     delete leaderCopy.areGuessesPublic;
 
@@ -167,6 +170,12 @@ function convertLeader(leaderData, includeGuesses) {
         leaderCopy.weeklyPlayRate = leaderCopy.weeklyPlayRate.toFixed(2);
     }
     return leaderCopy;
+
+    function removeInappropriateGuesses(guess) {
+        return hasBadWord(guess) || guess === 'dick'
+            ? '🙊'
+            : guess;
+    }
 }
 
 function getAllTimeLeaderboard(list, preferCached) {
