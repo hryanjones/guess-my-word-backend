@@ -284,6 +284,10 @@ function calculateFinalStatistics(leaders) {
 }
 
 function floorDate(date) {
+	date = new Date(date);
+    if (date.toString().includes('GMT+0000')) {
+    	date = +date - (8 * 60 * 60 * 1000); // subtract 8 hours to be more like Pacific
+    }
     date = new Date(date);
     date.setHours(0);
     date.setMinutes(0);
