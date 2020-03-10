@@ -172,7 +172,7 @@ function convertLeader(leaderData, includeGuesses) {
     return leaderCopy;
 
     function removeInappropriateGuesses(guess) {
-        return hasBadWord(guess) || guess === 'dick'
+        return hasBadWord(guess) || guess === 'dick' || guess === 'ass'
             ? '🙊'
             : guess;
     }
