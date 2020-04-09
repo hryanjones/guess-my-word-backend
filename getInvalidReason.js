@@ -16,7 +16,6 @@ const reasons = {
     badList: "wordlist isn't one of known lists",
     noName: 'You must give a name.',
     badTime: 'Time must be greater than 300 ms less than 24 hours',
-    badGuesses: 'numberOfGuesses must be a number greater than 1',
     invalidWord: 'Found an invalid word in the guesses',
     unexpectedWord: "The last guess isn't the word I was expecting for this day and wordlist",
     sameWordsAndTime: 'Having the exact same words and same completion time is *very* unlikely',
@@ -46,12 +45,11 @@ function getInvalidReason(dateString, wordlist, name, time, guesses, leaders, fr
     if (name.trim().length < minNameLength && !GRAND_FATHERED_SHORT_NAMES.has(name)) {
         return `Your name, "${name}" is too short. Try a bit longer one.`;
     }
-    if (!integerIsBetweenRange(time, 300, maxTime)) {
-        return `${reasons.badTime}. badTime: ${time}`;
-    }
+
     const numberOfGuesses = guesses.length;
-    if (!integerIsGreaterThan(numberOfGuesses, 1)) {
-        return `${reasons.badGuesses}. badGuesses: ${numberOfGuesses}`;
+    // allow guesses = 1 and time = 0, but if guesses are bigger than that the time must be reasonable
+    if (integerIsGreaterThan(guesses.length, 1) && !integerIsBetweenRange(time, 300, maxTime)) {
+        return `${reasons.badTime}. badTime: ${time}`;
     }
     if (numberOfGuesses >= maxNumberOfGuesses) {
         return `Sorry, the completion board doesn't accept submissions with more than ${maxNumberOfGuesses} guesses`;

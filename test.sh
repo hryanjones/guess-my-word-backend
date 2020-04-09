@@ -182,9 +182,10 @@ curl -Is -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=
 
 # Test validation that fails silently
 
-curl -Is -X POST "localhost:8080/leaderboard/2019-4-30/wordlist/normal?guesses=something,daughter&name=goobley&time=2000" | grep -q "HTTP/1.1 201" || error_exit "date format 201"
+curl -Is -X POST "localhost:8080/leaderboard/2019-4-30/wordlist/normal?guesses=something,daughter&name=new_name1&time=2000" \
+    | grep -q "HTTP/1.1 201" || error_exit "date format 201"
 
-curl -Is -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/notnormal?guesses=something,daughter&name=goobley&time=2000" \
+curl -Is -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/notnormal?guesses=something,daughter&name=new_name2&time=2000" \
     | grep -q "HTTP/1.1 201" || error_exit "wordlist 201"
 
 ## no name given
@@ -192,12 +193,8 @@ curl -Is -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=
     | grep -q "HTTP/1.1 201" || error_exit "missing name 201"
 
 ## over 24 hours time
-curl -Is -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=something,daughter&name=goobley&time=86400001" \
+curl -Is -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=something,daughter&name=new_name3&time=86400001" \
     | grep -q "HTTP/1.1 201" || error_exit "time too big 201"
-
-curl -Is -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal?guesses=daughter&name=goobley&time=1" \
-    | grep -q "HTTP/1.1 201" || error_exit "only one guess 201"
-
 
 echo "NOTE: If you want to run the max number of leaders test, uncomment it (it takes a long time)."
 
