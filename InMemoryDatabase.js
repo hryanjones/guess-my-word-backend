@@ -7,6 +7,7 @@ const {
 } = require('./getInvalidReason');
 const { addLeaderAwards } = require('./LeaderAwards');
 const { isProd } = require('./Utilities');
+const ALL_TIME_LEADERS_BLACKLIST = ['DDDLLLL.SSSDDDUUUFFFEEERRR'];
 
 const leadersByDateAndListAndName = {}; // see below for structure
 /*
@@ -123,6 +124,7 @@ function getLeadersArray(date, list, name, key) {
         const includeGuesses = name && leaders[name] && leaders[name].guesses[0] === key;
         leaders = sanitizeLeaders(leaders, includeGuesses);
     }
+
     ALL_TIME_LEADERS_BY_LIST[list] = allTimeLeaders; // cache all time leaders
 
     addLeaderAwards(leaders, type, allTimeLeaders);
@@ -200,7 +202,7 @@ function getAllTimeLeaderboard(list, preferCached) {
         }
     }
 
-    removeLowPlayLeaders(allTimeLeaders);
+    removeLowPlayAndBadLeaders(allTimeLeaders);
     calculateFinalStatistics(allTimeLeaders);
     return allTimeLeaders;
 }
@@ -251,10 +253,11 @@ function appendLeaderStatistics(allTimeLeaderData, {
     }
 }
 
-function removeLowPlayLeaders(allTimeLeaderData) {
+function removeLowPlayAndBadLeaders(allTimeLeaderData) {
     for (const name in allTimeLeaderData) {
         const leader = allTimeLeaderData[name];
-        if (leader.playCount < MIN_PLAY_COUNT_FOR_ALL_TIME_LEADERBOARD) {
+        if (leader.playCount < MIN_PLAY_COUNT_FOR_ALL_TIME_LEADERBOARD ||
+            ALL_TIME_LEADERS_BLACKLIST.includes(name)) {
             delete allTimeLeaderData[name];
         }
     }
