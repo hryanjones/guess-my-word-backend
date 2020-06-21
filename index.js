@@ -1,4 +1,5 @@
 const express = require('express');
+const expressLogging = require('express-logging');
 const https = require('https');
 const http = require('http');
 const bodyParser = require('body-parser');
@@ -16,6 +17,8 @@ InMemoryDatabase.getLeadersArray('ALL', 'hard'); // cache the leaderboard
 InMemoryDatabase.getLeadersArray('ALL', 'normal'); // cache the leaderboard
 // InMemoryDatabase.dumpDBToCSV();
 // process.exit();
+
+app.use(expressLogging(console, {policy:'params'}));
 
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');

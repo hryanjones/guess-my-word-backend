@@ -121,7 +121,7 @@ function getLeadersArray(date, list, name, key) {
         console.log(`${now.toISOString()} - Fetching all time leaderboard.`);
     } else {
         leaders = getLeadersForKeys(date, list);
-        const includeGuesses = name && leaders[name] && leaders[name].guesses[0] === key;
+        const includeGuesses = name && leaders && leaders[name] && leaders[name].guesses[0] === key;
         leaders = sanitizeLeaders(leaders, includeGuesses);
     }
 
