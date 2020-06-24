@@ -1,8 +1,9 @@
 const fs = require('fs');
+const path = require('path');
 const InMemoryDatabase = require('./InMemoryDatabase');
 
 const backupFileStreamsByDateAndWordlist = {};
-const BAD_NAMES_FILE = './BAD_NAMES.json';
+const BAD_NAMES_FILE = path.join(__dirname, 'BAD_NAMES.json');
 
 function backupEntry({ date, wordlist, name, submitTime, time, guesses, areGuessesPublic }) {
     const data = [sanitizeName(name), submitTime, time, quote(guesses), Boolean(areGuessesPublic)];
@@ -40,7 +41,7 @@ function getStream(date, wordlist) {
     let stream = backupFileStreamsByDateAndWordlist[date][wordlist];
     if (stream) return stream;
 
-    const filename = `backupLeaderboards/${date}_${wordlist}.csv`;
+    const filename = path.join(__dirname, `backupLeaderboards/${date}_${wordlist}.csv`);
     const fileAlreadyExists = fs.existsSync(filename);
     stream = fs.createWriteStream(filename, { flags: 'a' });
     if (!fileAlreadyExists) {
@@ -60,7 +61,7 @@ const BACKUP_FILENAME_PATTERN = /^[0-9]{4}-[0-9]{2}-[0-9]{2}_(hard|normal)\.csv$
 // 2019-04-30_normal.csv
 
 function recoverInMemoryDatabaseFromFiles() {
-    const recoveryDirectory = './backupLeaderboards/';
+    const recoveryDirectory = path.join(__dirname, 'backupLeaderboards/');
     const fileNames = fs.readdirSync(recoveryDirectory)
         .filter(name => BACKUP_FILENAME_PATTERN.test(name));
     if (!fileNames.length) return;
