@@ -18,7 +18,7 @@ InMemoryDatabase.getLeadersArray('ALL', 'normal'); // cache the leaderboard
 // InMemoryDatabase.dumpDBToCSV();
 // process.exit();
 
-app.use(expressLogging(console, {policy:'params'}));
+app.use(expressLogging(console));
 
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
