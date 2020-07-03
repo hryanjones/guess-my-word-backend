@@ -12,7 +12,7 @@ const ALL_TIME_LEADERS_BLACKLIST = ['DDDLLLL.SSSDDDUUUFFFEEERRR'];
 const leadersByDateAndListAndName = {}; // see below for structure
 /*
 {
-    [DateString]: {
+    [DateString]: { // e.g. '2019-06-04'
         [wordList: 'normal' or 'hard']: {
             [name]: {
                 guesses: String[],
@@ -186,12 +186,17 @@ function getAllTimeLeaderboard(list, preferCached) {
     }
     const allTimeLeaders = {};
 
+    const leadersInLastTwoWeeks = getLeadersInLastTwoWeeks(list);
+
     for (const date in leadersByDateAndListAndName) {
         let leaders = getLeadersForKeys(date, list);
         leaders = sanitizeLeaders(leaders);
 
 
         for (const leaderName in leaders) {
+            if (!leadersInLastTwoWeeks.has(leaderName)) {
+                continue;
+            }
             const leaderData = leaders[leaderName];
             const allTimeLeaderData = allTimeLeaders[leaderName];
             if (!allTimeLeaderData) {
@@ -205,6 +210,27 @@ function getAllTimeLeaderboard(list, preferCached) {
     removeLowPlayAndBadLeaders(allTimeLeaders);
     calculateFinalStatistics(allTimeLeaders);
     return allTimeLeaders;
+}
+
+const oneDayInMilliseconds = 24 * 60 * 60 * 1000;
+const twoWeeksInMilliseconds = 2 * 7 * oneDayInMilliseconds;
+
+function getLeadersInLastTwoWeeks(list) {
+    const dateStrings = [];
+    let date = +floorDate(new Date());
+    const twoWeeksAgo = new Date(date - twoWeeksInMilliseconds);
+    while (date >= twoWeeksAgo) {
+        dateStrings.push(new Date(date).toISOString().replace(/T.+/, ''));
+        date -= oneDayInMilliseconds;
+    }
+    const leaderNames = new Set();
+    dateStrings.forEach((dateString) => {
+        Object.keys(getLeadersForKeys(dateString, list) || {})
+            .forEach((name) => {
+                leaderNames.add(name);
+            });
+    });
+    return leaderNames;
 }
 
 function instantiateAllTimeLeader({
@@ -321,7 +347,6 @@ function numericSort(a, b) {
 TODO:
 2. Add in the badName return data to the frontend based on BAD_NAMES_BY_NAME
 3. file backup and recovery of BAD_NAMES_BY_NAME
-4. frontend work to report
 */
 function addBadName(report) {
     const {
@@ -406,14 +431,5 @@ function dumpDBToCSV() {
         }
     }
 }
-
-// [DateString]: {
-//     [wordList: 'normal' or 'hard']: {
-//         [name]: {
-//             guesses: String[],
-//                 time: Integer, // ms
-//                     submitTime: ISODateString,
-//             }
-//     }
 
 module.exports = InMemoryDatabase;
