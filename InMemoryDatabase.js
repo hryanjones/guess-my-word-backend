@@ -6,7 +6,8 @@ const {
     hasBadWord,
 } = require('./getInvalidReason');
 const { addLeaderAwards } = require('./LeaderAwards');
-const { isProd } = require('./Utilities');
+const { isProd, getNow } = require('./Utilities');
+
 const ALL_TIME_LEADERS_BLACKLIST = ['DDDLLLL.SSSDDDUUUFFFEEERRR'];
 
 const leadersByDateAndListAndName = {}; // see below for structure
@@ -89,7 +90,7 @@ function addLeader({
 }
 
 function logAndReturnInvalidReason(reason, name, prefix) {
-    const logMessage = `${(new Date()).toISOString()} - ${name} - ${prefix || 'INVALID REASON'}: ${reason}`;
+    const logMessage = `${(getNow()).toISOString()} - ${name} - ${prefix || 'INVALID REASON'}: ${reason}`;
     if (isProd) console.log(logMessage); // print to log
     console.warn(logMessage); // print to stderr so easier to see outside of log tail
     return reason;
@@ -117,7 +118,7 @@ function getLeadersArray(date, list, name, key) {
     const allTimeLeaders = getAllTimeLeaderboard(list, /* prefer cached if */ type === 'normal');
     if (type === 'allTime') {
         leaders = allTimeLeaders;
-        const now = new Date();
+        const now = getNow();
         console.log(`${now.toISOString()} - Fetching all time leaderboard.`);
     } else {
         leaders = getLeadersForKeys(date, list);
@@ -127,7 +128,7 @@ function getLeadersArray(date, list, name, key) {
 
     ALL_TIME_LEADERS_BY_LIST[list] = allTimeLeaders; // cache all time leaders
 
-    addLeaderAwards(leaders, type, allTimeLeaders);
+    addLeaderAwards(leaders, type, allTimeLeaders, name);
     markBadNames(leaders);
     return Object.values(leaders);
 }
@@ -217,7 +218,7 @@ const twoWeeksInMilliseconds = 2 * 7 * oneDayInMilliseconds;
 
 function getLeadersInLastTwoWeeks(list) {
     const dateStrings = [];
-    let date = +floorDate(new Date());
+    let date = +floorDate(getNow());
     const twoWeeksAgo = new Date(date - twoWeeksInMilliseconds);
     while (date >= twoWeeksAgo) {
         dateStrings.push(new Date(date).toISOString().replace(/T.+/, ''));
@@ -294,7 +295,7 @@ const MILLISECONDS_IN_A_DAY = 1000 /* ms per s */ * 60 /* s per min */ * 60 /* m
 const MILLISECONDS_IN_A_WEEK = MILLISECONDS_IN_A_DAY * 7; /* days per week */
 
 function calculateFinalStatistics(leaders) {
-    const now = floorDate(new Date());
+    const now = floorDate(getNow());
     for (const name in leaders) {
         const leader = leaders[name];
 
@@ -361,7 +362,7 @@ function addBadName(report) {
         logAndReturnInvalidReason(invalidReason, reporterName, 'BAD NAME INVALID REPORT');
         return null;
     }
-    const now = new Date();
+    const now = getNow();
     const badActor = BAD_NAMES_BY_NAME[badName] || getBaseBadNameRecord();
     if (isFirstDayForBadActor(badActor, +now - FIRST_DAY_TIME_IN_MS)) {
         addUniqueReporter(reporterName, badActor.reportedByOnFirstDay);
@@ -381,7 +382,7 @@ function addBadName(report) {
 
 function getBaseBadNameRecord() {
     return {
-        firstReportDate: new Date(),
+        firstReportDate: getNow(),
         reportedByOnFirstDay: [],
         reportedByAfterFirstDay: [],
     };
@@ -402,7 +403,7 @@ function markBadNames(leadersByName) {
 
 function getFilterableBadNames() {
     const badNames = Object.keys(BAD_NAMES_BY_NAME);
-    const now = new Date();
+    const now = getNow();
     const epochFirstDayCutoff = +now - FIRST_DAY_TIME_IN_MS;
     return badNames.filter((name) => {
         const actor = BAD_NAMES_BY_NAME[name];

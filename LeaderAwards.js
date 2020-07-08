@@ -5,8 +5,9 @@ const LeaderAwards = {
 const LUCKY_AWARD = '🍀 lucky?';
 const LUCKY_BUGGER_GUESS_COUNT_THRESHOLD = 5;
 const THAT_GUY_NAME = 'THAT GUY 🤦‍♀️'; // name that signifies a user is using an inappropriate username
+const LUCKY_BUGGER_PLAY_COUNT_THRESHOLD = 10;
 
-function addLeaderAwards(leadersByName, type, allTimeLeaders) {
+function addLeaderAwards(leadersByName, type, allTimeLeaders, requester) {
     const awardTrackers = getNewAwardTrackers(type);
     const luckyTracker = {
         names: [],
@@ -17,7 +18,7 @@ function addLeaderAwards(leadersByName, type, allTimeLeaders) {
         const leader = leadersByName[name];
         prepareLeaderForBoard(leader, name);
 
-        if (isLucky(leader, allTimeLeaders)) {
+        if (isLucky(leader, allTimeLeaders, requester)) {
             luckyTracker.names.push(name);
             continue; // eslint-disable-line
         }
@@ -42,11 +43,14 @@ function addLeaderAwards(leadersByName, type, allTimeLeaders) {
     return leadersByName;
 }
 
-function isLucky(leader, allTimeLeaders) {
-    const normalBoard = Number.isInteger(leader.numberOfGuesses);
-    return normalBoard
-        && !allTimeLeaders[leader.name] // not on the all time board
-        && leader.numberOfGuesses <= LUCKY_BUGGER_GUESS_COUNT_THRESHOLD;
+function isLucky(leader, allTimeLeaders, requester) {
+    const dailyBoard = Number.isInteger(leader.numberOfGuesses);
+    const allTimeRecord = allTimeLeaders[leader.name];
+    const playCount = allTimeRecord && allTimeRecord.playCount || 0;
+    return dailyBoard
+        && leader.numberOfGuesses <= LUCKY_BUGGER_GUESS_COUNT_THRESHOLD
+        && leader.name !== requester // don't call a person themselves lucky
+        && playCount < LUCKY_BUGGER_PLAY_COUNT_THRESHOLD; // more dedicated players can be on the top
 }
 
 

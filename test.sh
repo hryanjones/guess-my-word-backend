@@ -105,9 +105,9 @@ curl -s -X POST "localhost:8080/leaderboard/2019-05-01/wordlist/hard?guesses=cry
 curl -s -X POST "localhost:8080/leaderboard/2019-05-01/wordlist/hard?guesses=barf,map,food,name,aberration&name=Looben%20Doo&time=5000" > /dev/null
 
 
-# Test that guesses come back when correct name and key given
+# Test that guesses come back when correct name and key given and leader doesn't see themselves as lucky
 
-echo -n '[{"submitTime":"","time":400,"guesses":["🙊","aberration"],"numberOfGuesses":2,"name":"mergen","awards":"🍀 lucky?"},{"submitTime":"","time":401,"numberOfGuesses":4,"name":"purg","awards":"🍀 lucky?"},{"submitTime":"","time":5000,"numberOfGuesses":5,"name":"Looben Doo","awards":"🍀 lucky?"}]' > /tmp/expected.json
+echo -n '[{"submitTime":"","time":400,"guesses":["🙊","aberration"],"numberOfGuesses":2,"name":"mergen","awards":"🍀 lucky?"},{"submitTime":"","time":401,"numberOfGuesses":4,"name":"purg","awards":"🏆 fastest, 🏆 fewest guesses, 🏅 first guesser"},{"submitTime":"","time":5000,"numberOfGuesses":5,"name":"Looben Doo","awards":"🍀 lucky?"}]' > /tmp/expected.json
 curl -s "localhost:8080/leaderboard/2019-05-01/wordlist/hard?name=purg&key=cry" | \
     sed -e 's/"submitTime":"[^"]*"/"submitTime":""/g' \
     > /tmp/response.json  \
@@ -115,7 +115,7 @@ curl -s "localhost:8080/leaderboard/2019-05-01/wordlist/hard?name=purg&key=cry" 
 
 # Test that guesses DON'T come back when correct name and incorrect key given
 
-echo -n '[{"submitTime":"","time":400,"numberOfGuesses":2,"name":"mergen","awards":"🍀 lucky?"},{"submitTime":"","time":401,"numberOfGuesses":4,"name":"purg","awards":"🍀 lucky?"},{"submitTime":"","time":5000,"numberOfGuesses":5,"name":"Looben Doo","awards":"🍀 lucky?"}]' > /tmp/expected.json
+echo -n '[{"submitTime":"","time":400,"numberOfGuesses":2,"name":"mergen","awards":"🍀 lucky?"},{"submitTime":"","time":401,"numberOfGuesses":4,"name":"purg","awards":"🏆 fastest, 🏆 fewest guesses, 🏅 first guesser"},{"submitTime":"","time":5000,"numberOfGuesses":5,"name":"Looben Doo","awards":"🍀 lucky?"}]' > /tmp/expected.json
 curl -s "localhost:8080/leaderboard/2019-05-01/wordlist/hard?name=purg&key=bye" | \
     sed -e 's/"submitTime":"[^"]*"/"submitTime":""/g' \
     > /tmp/response.json  \
