@@ -89,6 +89,7 @@ function getInvalidReason(dateString, wordlist, name, time, guesses, leaders, fr
 
     function sameGuessesAndTime(savedLeader) {
         return savedLeader.time === time
+            && savedLeader.guesses.length > 1 // it is likely if both users happened to guess in 1
             && savedLeader.guesses.join(',') === joinedGuesses;
     }
 }
