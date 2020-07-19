@@ -25,6 +25,11 @@ const leadersByDateAndListAndName = {}; // see below for structure
 }
 */
 
+const allTimeLeadersCacheDataByListAndName = { // this is derived from reading through leadersByDateAndListAndName
+    normal: {}, // see instantiateAllTimeLeader for internal structure
+    hard: {},
+};
+
 const MIN_PLAY_COUNT_FOR_ALL_TIME_LEADERBOARD = 4;
 
 const THAT_GUY_NAME = 'THAT GUY 🤦‍♀️';
@@ -185,69 +190,47 @@ function getAllTimeLeaderboard(list, preferCached) {
     if (preferCached && ALL_TIME_LEADERS_BY_LIST[list]) {
         return ALL_TIME_LEADERS_BY_LIST[list];
     }
-    const allTimeLeaders = {};
-
-    const leadersInLastTwoWeeks = getLeadersInLastTwoWeeks(list);
 
     for (const date in leadersByDateAndListAndName) {
         let leaders = getLeadersForKeys(date, list);
         leaders = sanitizeLeaders(leaders);
 
-
         for (const leaderName in leaders) {
-            if (!leadersInLastTwoWeeks.has(leaderName)) {
-                continue;
-            }
             const leaderData = leaders[leaderName];
-            const allTimeLeaderData = allTimeLeaders[leaderName];
-            if (!allTimeLeaderData) {
-                allTimeLeaders[leaderName] = instantiateAllTimeLeader(leaderData);
-            } else {
-                appendLeaderStatistics(allTimeLeaderData, leaderData);
-            }
+            updateAllTimeLeadersCache(list, leaderName, leaderData);
+        }
+
+        // need to recover memory
+        const shouldPurgeOldLeaders = new Date(date) < getEpochTimeForLeaderPurging();
+        if (shouldPurgeOldLeaders) {
+            delete leadersByDateAndListAndName[date];
         }
     }
 
-    removeLowPlayAndBadLeaders(allTimeLeaders);
+    const allTimeLeaders = getAllTimeLeadersFromCache(list);
     calculateFinalStatistics(allTimeLeaders);
     return allTimeLeaders;
+}
+
+function updateAllTimeLeadersCache(list, name, data) {
+    if (!allTimeLeadersCacheDataByListAndName[list][name]) {
+        allTimeLeadersCacheDataByListAndName[list][name] = instantiateAllTimeLeader();
+    }
+    appendLeaderStatistics(allTimeLeadersCacheDataByListAndName[list][name], data);
 }
 
 const oneDayInMilliseconds = 24 * 60 * 60 * 1000;
 const twoWeeksInMilliseconds = 2 * 7 * oneDayInMilliseconds;
 
-function getLeadersInLastTwoWeeks(list) {
-    const dateStrings = [];
-    let date = +floorDate(getNow());
-    const twoWeeksAgo = new Date(date - twoWeeksInMilliseconds);
-    while (date >= twoWeeksAgo) {
-        dateStrings.push(new Date(date).toISOString().replace(/T.+/, ''));
-        date -= oneDayInMilliseconds;
-    }
-    const leaderNames = new Set();
-    dateStrings.forEach((dateString) => {
-        Object.keys(getLeadersForKeys(dateString, list) || {})
-            .forEach((name) => {
-                leaderNames.add(name);
-            });
-    });
-    return leaderNames;
-}
-
-function instantiateAllTimeLeader({
-    submitTime,
-    numberOfGuesses,
-    time,
-}) {
+function instantiateAllTimeLeader() {
     return {
-        playCount: 1,
-        firstSubmitDate: floorDate(submitTime),
-        bestTime: time,
-        // bestTimeWord: '', // TODO
-        timeList: [time],
-        bestNumberOfGuesses: numberOfGuesses,
-        // bestNumberOfGuessesWord: '', // TODO
-        numberOfGuessesList: [numberOfGuesses],
+        playCount: 0, // int
+        firstSubmitDate: '', // date
+        bestNumberOfGuesses: Infinity, // int
+        timeList: [], // int[]
+        bestTime: Infinity, // int
+        numberOfGuessesList: [], // int
+        updatedTo: '', // date
     };
 }
 
@@ -256,7 +239,10 @@ function appendLeaderStatistics(allTimeLeaderData, {
     numberOfGuesses,
     submitTime,
 }) {
-    allTimeLeaderData.playCount += 1;
+    const { updatedTo } = allTimeLeaderData;
+    if (updatedTo && submitTime < updatedTo) {
+        return; // this record is already stored, don't duplicate
+    }
 
     const {
         numberOfGuessesList,
@@ -270,24 +256,32 @@ function appendLeaderStatistics(allTimeLeaderData, {
         allTimeLeaderData.bestNumberOfGuesses = numberOfGuesses;
     }
 
+    allTimeLeaderData.playCount = numberOfGuessesList.length;
+
     timeList.push(time);
     if (time < bestTime) {
         allTimeLeaderData.bestTime = time;
     }
 
-    if (submitTime < allTimeLeaderData.firstSubmitDate) {
+    if (!allTimeLeaderData.firstSubmitDate || submitTime < allTimeLeaderData.firstSubmitDate) {
         allTimeLeaderData.firstSubmitDate = floorDate(submitTime);
     }
+    allTimeLeaderData.updatedTo = floorDate(submitTime);
 }
 
-function removeLowPlayAndBadLeaders(allTimeLeaderData) {
-    for (const name in allTimeLeaderData) {
-        const leader = allTimeLeaderData[name];
-        if (leader.playCount < MIN_PLAY_COUNT_FOR_ALL_TIME_LEADERBOARD ||
-            ALL_TIME_LEADERS_BLACKLIST.includes(name)) {
-            delete allTimeLeaderData[name];
+function getAllTimeLeadersFromCache(list) {
+    const cachedLeadersByName = allTimeLeadersCacheDataByListAndName[list];
+    const twoWeeksAgo = new Date(getNow() - twoWeeksInMilliseconds);
+    const allTimeLeaders = {};
+    for (const name in cachedLeadersByName) {
+        const leader = cachedLeadersByName[name];
+        if (leader.playCount >= MIN_PLAY_COUNT_FOR_ALL_TIME_LEADERBOARD
+            && !ALL_TIME_LEADERS_BLACKLIST.includes(name)
+            && leader.updatedTo >= twoWeeksAgo) {
+            allTimeLeaders[name] = { ...leader };
         }
     }
+    return allTimeLeaders;
 }
 
 const MILLISECONDS_IN_A_DAY = 1000 /* ms per s */ * 60 /* s per min */ * 60 /* min per hour */
@@ -298,6 +292,8 @@ function calculateFinalStatistics(leaders) {
     const now = floorDate(getNow());
     for (const name in leaders) {
         const leader = leaders[name];
+
+        delete leader.updatedTo;
 
         leader.numberOfGuessesMedian = getFlooredMedian(leader.numberOfGuessesList);
         delete leader.numberOfGuessesList;
@@ -414,6 +410,10 @@ function getFilterableBadNames() {
         }
         return (firstDayReports + laterReports) >= LIMIT_FOR_ALL_TIME_HIDING;
     });
+}
+
+function getEpochTimeForLeaderPurging() {
+    return +getNow() - (3 * 24 * 60 * 60 * 1000); // anything older than 3 days is definitely not a new submit.
 }
 
 function dumpDBToCSV() {
