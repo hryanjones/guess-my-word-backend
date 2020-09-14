@@ -107,8 +107,8 @@ app.post('/leaderboard/:timezonelessDate/wordlist/:wordlist/badname', (req, res)
 if (isProd) {
     // const hostname = 'home.hryanjones.com';
     const hostname = 'ec2.hryanjones.com';
-    const privateKey = fs.readFileSync(`/etc/letsencrypt/live/${hostname}/privkey.pem`, 'utf8');
-    const certificate = fs.readFileSync(`/etc/letsencrypt/live/${hostname}/fullchain.pem`, 'utf8');
+    const privateKey = fs.readFileSync(`/etc/letsencrypt/live/${hostname}-0001/privkey.pem`, 'utf8');
+    const certificate = fs.readFileSync(`/etc/letsencrypt/live/${hostname}-0001/fullchain.pem`, 'utf8');
     const credentials = { key: privateKey, cert: certificate };
     const httpsServer = https.createServer(credentials, app);
 
