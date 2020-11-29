@@ -201,10 +201,10 @@ function getAllTimeLeaderboard(list, preferCached) {
         }
 
         // need to recover memory
-        const shouldPurgeOldLeaders = new Date(date) < getEpochTimeForLeaderPurging();
-        if (shouldPurgeOldLeaders) {
-            delete leadersByDateAndListAndName[date];
-        }
+        // const shouldPurgeOldLeaders = new Date(date) < getEpochTimeForLeaderPurging();
+        // if (shouldPurgeOldLeaders) {
+        //     delete leadersByDateAndListAndName[date];
+        // }
     }
 
     const allTimeLeaders = getAllTimeLeadersFromCache(list);
@@ -240,7 +240,8 @@ function appendLeaderStatistics(allTimeLeaderData, {
     submitTime,
 }) {
     const { updatedTo } = allTimeLeaderData;
-    if (updatedTo && submitTime < updatedTo) {
+    submitTime = new Date(submitTime);
+    if (updatedTo && submitTime <= updatedTo) {
         return; // this record is already stored, don't duplicate
     }
 
@@ -266,7 +267,7 @@ function appendLeaderStatistics(allTimeLeaderData, {
     if (!allTimeLeaderData.firstSubmitDate || submitTime < allTimeLeaderData.firstSubmitDate) {
         allTimeLeaderData.firstSubmitDate = floorDate(submitTime);
     }
-    allTimeLeaderData.updatedTo = floorDate(submitTime);
+    allTimeLeaderData.updatedTo = submitTime;
 }
 
 function getAllTimeLeadersFromCache(list) {
