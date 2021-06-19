@@ -139,6 +139,10 @@ const possibleWords = {
 };
 /* eslint-enable */
 
+// on the frontend because of some counting error we had to duplicate the 618th index word, however, this wasn't a problem on the backend, so remove this from the list when copy-pasting the words from the frontend.
+possibleWords.normal = possibleWords.normal.slice(0, 618).concat(possibleWords.normal.slice(619));
+possibleWords.hard = possibleWords.hard.slice(0, 618).concat(possibleWords.hard.slice(619));
+
 function lookupWord(dateString, difficulty) {
     const date = getDate(dateString);
     return getWord(date, difficulty);
