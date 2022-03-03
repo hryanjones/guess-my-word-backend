@@ -95,7 +95,7 @@ function getInvalidReason(dateString, wordlist, name, time, guesses, leaders, fr
 }
 
 const simpleBadWordRegex = /\b(asses|twat)\b/;
-const simpleNonBreakingBadWordRegex = /(fuck|dicks|asshole(s)?|shit|cock|penis|cunt|vagina|twats|boob|nigger|kike|puss(y|ies)|fag(s|got)|whore|bitch)/;
+const simpleNonBreakingBadWordRegex = /(fuck|dicks|asshole(s)?|shit|cock|penis|cunt|vagina|twats|boob|nigger|kike|puss(y|ies)|fag(s|got)?|whore|bitch)/;
 
 function hasBadWord(lowercaseString) {
     return simpleNonBreakingBadWordRegex.test(lowercaseString)
