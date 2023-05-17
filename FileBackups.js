@@ -75,9 +75,13 @@ function recoverInMemoryDatabaseFromFiles() {
 
         lines.forEach((line) => {
             const lineMatch = line.match(DATA_LINE_DESTRUCTURE_PATTERN);
-            let [, name, submitTime, time, guesses, areGuessesPublic] = lineMatch;
-            name = name.replace(/\\"/g, '"');
-            InMemoryDatabase.addLeader({ date, wordlist, name, guesses, time, submitTime, areGuessesPublic }, true);
+            try {
+                let [, name, submitTime, time, guesses, areGuessesPublic] = lineMatch;
+                name = name.replace(/\\"/g, '"');
+                InMemoryDatabase.addLeader({ date, wordlist, name, guesses, time, submitTime, areGuessesPublic }, true);
+            } catch(e) {
+                console.error('ERROR: not able to add leader from this line', line);
+            }
         });
 
         console.log(`\tRecovered ${lines.length} leaders from ${fileName}`);

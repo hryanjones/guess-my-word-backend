@@ -15,6 +15,7 @@ const app = express();
 FileBackups.recoverInMemoryDatabaseFromFiles();
 InMemoryDatabase.getLeadersArray('ALL', 'hard'); // cache the leaderboard
 InMemoryDatabase.getLeadersArray('ALL', 'normal'); // cache the leaderboard
+
 // InMemoryDatabase.dumpDBToCSV();
 // process.exit();
 
