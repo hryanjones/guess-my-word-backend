@@ -47,8 +47,8 @@ function getInvalidReason(dateString, wordlist, name, time, guesses, leaders, fr
     }
 
     const numberOfGuesses = guesses.length;
-    // allow guesses = 1 and time = 0, but if guesses are bigger than that the time must be reasonable
-    const guessedInOne = guesses.length === 1 && time === 0
+    // allow guesses = 1 and time = 0 or 1, but if guesses are bigger than that the time must be reasonable
+    const guessedInOne = guesses.length === 1 && (time === 0 || time === 1)
     if (!guessedInOne && !integerIsBetweenRange(time, 300, maxTime)) {
         return `${reasons.badTime}. badTime: ${time}`;
     }
