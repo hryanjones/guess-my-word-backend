@@ -3,7 +3,6 @@ const path = require('path');
 const InMemoryDatabase = require('./InMemoryDatabase');
 
 const backupFileStreamsByDateAndWordlist = {};
-const BAD_NAMES_FILE = path.join(__dirname, 'BAD_NAMES.json');
 
 function backupEntry({ date, wordlist, name, submitTime, time, guesses, areGuessesPublic }) {
     const data = [sanitizeName(name), submitTime, time, quote(guesses), Boolean(areGuessesPublic)];
@@ -20,15 +19,6 @@ function quote(string) {
         quote(string.join(','));
     }
     return `"${string}"`;
-}
-
-function backupBadNames(badNames) {
-    fs.writeFile(BAD_NAMES_FILE, JSON.stringify(badNames), 'utf8', logDone);
-
-    function logDone() {
-        const names = Object.keys(badNames);
-        console.log(`Backed up ${names.length} badNames, last one was ${names[names.length - 1]}`);
-    }
 }
 
 const backupFileHeader = 'name,submitTime,timeInMilliSeconds,guesses,areGuessesPublic\n';
@@ -79,26 +69,16 @@ function recoverInMemoryDatabaseFromFiles() {
                 let [, name, submitTime, time, guesses, areGuessesPublic] = lineMatch;
                 name = name.replace(/\\"/g, '"');
                 InMemoryDatabase.addLeader({ date, wordlist, name, guesses, time, submitTime, areGuessesPublic }, true);
-            } catch(e) {
+            } catch (e) {
                 console.error('ERROR: not able to add leader from this line', line);
             }
         });
 
         console.log(`\tRecovered ${lines.length} leaders from ${fileName}`);
     });
-
-    console.log('Recovering BAD_NAMES_BY_NAME');
-    fs.readFile(BAD_NAMES_FILE, 'utf8', (err, data) => {
-        if (err) {
-            console.log(err);
-        } else {
-            InMemoryDatabase.setBadNames(JSON.parse(data));
-        }
-    });
 }
 
 module.exports = {
     backupEntry,
-    backupBadNames,
     recoverInMemoryDatabaseFromFiles,
 };

@@ -113,20 +113,6 @@ function getInvalidDateReason(dateString, fromBackup) {
     return '';
 }
 
-function getInvalidBadNameReport({ reporterName, badName, date, wordlist }, leadersList) {
-    if (!leadersList) {
-        return `No leaders list for date and wordlist: ${date}, ${wordlist}.`;
-    }
-    if (!(reporterName in leadersList)) {
-        return `Reporter not in leaders list: ${reporterName}.`;
-    }
-    if (!(badName in leadersList)) {
-        return `Bad name not in leaders list: ${badName}`;
-    }
-
-    return getInvalidDateReason(date);
-}
-
 // FIXME, this is currently just copy-pasted from frontend code, would be much better if we load this from the frontend on startup
 /* eslint-disable */
 const possibleWords = {
@@ -221,6 +207,5 @@ function getDOY(date) {
 module.exports = {
     getInvalidReason,
     NO_RESPONSE_INVALID_REASONS,
-    getInvalidBadNameReport,
     hasBadWord,
 };

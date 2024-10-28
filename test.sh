@@ -214,34 +214,6 @@ echo "NOTE: If you want to run the max number of leaders test, uncomment it (it 
 # curl -s -X POST "localhost:8080/leaderboard/2019-05-01/wordlist/hard?guesses=barf,map,food,name,aberration&name=20000&time=5000" | grep -q "Sorry, we only accept" || error_exit "Didn't reject over-max leader"
 
 
-# Bad Names test
-
-## make 3 reports for goobley
-curl -s -H "Content-Type: application/json" --data '{"reporterName":"mergen", "badName":"goobley"}' -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal/badname" > /dev/null
-curl -s -H "Content-Type: application/json" --data '{"reporterName":"purg", "badName":"goobley"}' -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal/badname" > /dev/null
-curl -s -H "Content-Type: application/json" --data '{"reporterName":"Mukilteo👍", "badName":"goobley"}' -X POST "localhost:8080/leaderboard/2019-04-30/wordlist/normal/badname" > /dev/null
-
-echo -n '[{"submitTime":"","time":2000,"numberOfGuesses":2,"name":"goobley","awards":"🍀 lucky?","badName":true},{"submitTime":"","time":30000,"numberOfGuesses":3,"name":"\"blerg\"","awards":"🍀 lucky?"},{"submitTime":"","time":301,"numberOfGuesses":2,"name":"mergen","awards":"🍀 lucky?"},{"submitTime":"","time":1140,"numberOfGuesses":4,"name":"purg","awards":"🍀 lucky?"},{"submitTime":"","time":5000,"numberOfGuesses":5,"name":"Looben Doo","awards":"🍀 lucky?"},{"submitTime":"","time":600,"numberOfGuesses":6,"name":"Mukilteo👍","awards":"🏆 fastest, 🏆 fewest guesses, 🏅 first guesser"},{"submitTime":"","time":70000,"numberOfGuesses":7,"name":"Dublin"},{"submitTime":"","time":800000,"numberOfGuesses":8,"name":"Foogey"},{"submitTime":"","time":800000,"numberOfGuesses":8,"name":"Yeah recovery worked"},{"submitTime":"","time":2000,"numberOfGuesses":2,"name":"R","awards":"🍀 lucky?"}]' > /tmp/expected.json
-curl -s "localhost:8080/leaderboard/2019-04-30/wordlist/normal" \
-    | sed -e 's/"submitTime":"[^"]*"/"submitTime":""/g' \
-    > /tmp/response.json\
-    && diff -q /tmp/response.json /tmp/expected.json \
-    || error_exit "didn't correctly apply badName from 3 reports" "meld /tmp/response.json /tmp/expected.json"
-
-## Bad names recovery test
-
-kill "$server_pid"
-node ./index.js &
-sleep 3
-server_pid="$!"
-
-echo -n '[{"submitTime":"","time":2000,"numberOfGuesses":2,"name":"goobley","awards":"🍀 lucky?","badName":true},{"submitTime":"","time":30000,"numberOfGuesses":3,"name":"\"blerg\"","awards":"🍀 lucky?"},{"submitTime":"","time":301,"numberOfGuesses":2,"name":"mergen","awards":"🍀 lucky?"},{"submitTime":"","time":1140,"numberOfGuesses":4,"name":"purg","awards":"🍀 lucky?"},{"submitTime":"","time":5000,"numberOfGuesses":5,"name":"Looben Doo","awards":"🍀 lucky?"},{"submitTime":"","time":600,"numberOfGuesses":6,"name":"Mukilteo👍","awards":"🏆 fastest, 🏆 fewest guesses, 🏅 first guesser"},{"submitTime":"","time":70000,"numberOfGuesses":7,"name":"Dublin"},{"submitTime":"","time":800000,"numberOfGuesses":8,"name":"Foogey"},{"submitTime":"","time":800000,"numberOfGuesses":8,"name":"Yeah recovery worked"},{"submitTime":"","time":2000,"numberOfGuesses":2,"name":"R","awards":"🍀 lucky?"}]' > /tmp/expected.json
-curl -s "localhost:8080/leaderboard/2019-04-30/wordlist/normal" \
-    | sed -e 's/"submitTime":"[^"]*"/"submitTime":""/g' \
-    > /tmp/response.json\
-    && diff -q /tmp/response.json /tmp/expected.json \
-    || error_exit "wasn't able to recover bad names from backup" "meld /tmp/response.json /tmp/expected.json"
-
 kill "$server_pid"
 
 echo "Good job, it works! 👍"

@@ -2,7 +2,6 @@
 
 const {
     getInvalidReason,
-    getInvalidBadNameReport,
     hasBadWord,
 } = require('./getInvalidReason');
 const { addLeaderAwards } = require('./LeaderAwards');
@@ -36,15 +35,6 @@ const THAT_GUY_NAME = 'THAT GUY 🤦‍♀️';
 
 const ALL_TIME_LEADERS_BY_LIST = {};
 
-let BAD_NAMES_BY_NAME = {}; // see below for structure
-/*
-{
-    [name: string]: {
-        firstReportDate: Date,
-        reportedByOnFirstDay: String[],
-        reportedByAfterFirstDay: String[],
-    }
-*/
 const LIMIT_FOR_FIRST_DAY_HIDING = 3;
 const LIMIT_FOR_ALL_TIME_HIDING = 7;
 const FIRST_DAY_TIME_IN_MS = 12 /* hours */ * 60 /* min/hour */ * 60 /* sec/min */ * 1000; /* ms */
@@ -52,13 +42,6 @@ const FIRST_DAY_TIME_IN_MS = 12 /* hours */ * 60 /* min/hour */ * 60 /* sec/min 
 const InMemoryDatabase = {
     addLeader,
     getLeadersArray,
-    addBadName,
-    setBadNames(badNames) {
-        for (const name in badNames) {
-            badNames[name].firstReportDate = new Date(badNames[name].firstReportDate);
-        }
-        BAD_NAMES_BY_NAME = badNames;
-    },
     dumpDBToCSV,
 };
 
@@ -134,7 +117,6 @@ function getLeadersArray(date, list, name, key) {
     ALL_TIME_LEADERS_BY_LIST[list] = allTimeLeaders; // cache all time leaders
 
     addLeaderAwards(leaders, type, allTimeLeaders, name);
-    markBadNames(leaders);
     return Object.values(leaders);
 }
 
@@ -311,9 +293,9 @@ function calculateFinalStatistics(leaders) {
 }
 
 function floorDate(date) {
-	date = new Date(date);
+    date = new Date(date);
     if (date.toString().includes('GMT+0000')) {
-    	date = +date - (8 * 60 * 60 * 1000); // subtract 8 hours to be more like Pacific
+        date = +date - (8 * 60 * 60 * 1000); // subtract 8 hours to be more like Pacific
     }
     date = new Date(date);
     date.setHours(0);
@@ -339,78 +321,6 @@ function numericSort(a, b) {
     if (a < b) return -1;
     if (a > b) return 1;
     return 0;
-}
-
-/*
-TODO:
-2. Add in the badName return data to the frontend based on BAD_NAMES_BY_NAME
-3. file backup and recovery of BAD_NAMES_BY_NAME
-*/
-function addBadName(report) {
-    const {
-        reporterName,
-        badName,
-        date,
-        wordlist,
-    } = report;
-    const leadersList = getLeadersForKeys(date, wordlist);
-    const invalidReason = getInvalidBadNameReport(report, leadersList);
-    if (invalidReason) {
-        logAndReturnInvalidReason(invalidReason, reporterName, 'BAD NAME INVALID REPORT');
-        return null;
-    }
-    const now = getNow();
-    const badActor = BAD_NAMES_BY_NAME[badName] || getBaseBadNameRecord();
-    if (isFirstDayForBadActor(badActor, +now - FIRST_DAY_TIME_IN_MS)) {
-        addUniqueReporter(reporterName, badActor.reportedByOnFirstDay);
-    } else {
-        addUniqueReporter(reporterName, badActor.reportedByAfterFirstDay);
-    }
-    BAD_NAMES_BY_NAME[badName] = badActor;
-
-    return BAD_NAMES_BY_NAME;
-
-    function addUniqueReporter(name, list) {
-        if (!list.includes(name)) {
-            list.push(name);
-        }
-    }
-}
-
-function getBaseBadNameRecord() {
-    return {
-        firstReportDate: getNow(),
-        reportedByOnFirstDay: [],
-        reportedByAfterFirstDay: [],
-    };
-}
-
-function isFirstDayForBadActor(badActor, epochFirstDayCutoff) {
-    return epochFirstDayCutoff < badActor.firstReportDate;
-}
-
-function markBadNames(leadersByName) {
-    getFilterableBadNames().forEach((badName) => {
-        const badLeader = leadersByName[badName];
-        if (badLeader) {
-            badLeader.badName = true;
-        }
-    });
-}
-
-function getFilterableBadNames() {
-    const badNames = Object.keys(BAD_NAMES_BY_NAME);
-    const now = getNow();
-    const epochFirstDayCutoff = +now - FIRST_DAY_TIME_IN_MS;
-    return badNames.filter((name) => {
-        const actor = BAD_NAMES_BY_NAME[name];
-        const firstDayReports = actor.reportedByOnFirstDay.length;
-        const laterReports = actor.reportedByAfterFirstDay.length;
-        if (isFirstDayForBadActor(actor, epochFirstDayCutoff)) {
-            return firstDayReports >= LIMIT_FOR_FIRST_DAY_HIDING;
-        }
-        return (firstDayReports + laterReports) >= LIMIT_FOR_ALL_TIME_HIDING;
-    });
 }
 
 function getEpochTimeForLeaderPurging() {

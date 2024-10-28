@@ -86,25 +86,6 @@ app.post('/leaderboard/:timezonelessDate/wordlist/:wordlist', (req, res) => {
     }
 });
 
-app.post('/leaderboard/:timezonelessDate/wordlist/:wordlist/badname', (req, res) => {
-    const { timezonelessDate: date, wordlist } = req.params;
-    const data = req.body;
-
-    const BAD_NAMES = InMemoryDatabase.addBadName(Object.assign(
-        data,
-        {
-            date,
-            wordlist,
-        },
-    ));
-
-    if (BAD_NAMES) {
-        FileBackups.backupBadNames(BAD_NAMES);
-    }
-
-    res.status(201).send({});
-});
-
 if (isProd) {
     // const hostname = 'home.hryanjones.com';
     const hostname = 'ec2.hryanjones.com';
