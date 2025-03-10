@@ -66,7 +66,7 @@ function getInvalidReason(dateString, wordlist, name, time, guesses, leaders, fr
         return `Didn't find a word for the date (${dateString}) and wordlist (${wordlist}) you gave.`;
     }
     if (word !== expectedWord) {
-        return `${reasons.unexpectedWord}. unexpectedWord: ${word}`;
+        return `${reasons.unexpectedWord}. unexpectedWord: ${word}, dateString: ${dateString}, wordlist: ${wordlist}, expectedWord: ${expectedWord}`;
     }
 
     if (isInappropriateName(name)) {
@@ -165,8 +165,16 @@ function getWord(date, difficulty) {
 
 function getWordIndex(date) {
     const doy = getDOY(date);
-    const yearOffset = (date.getFullYear() - 2019) * 365;
-    // FIXME deal with leap years?
+    const thisYear = date.getFullYear();
+    const yearsSince2019 = (date.getFullYear() - 2019);
+    let yearOffset = yearsSince2019 * 365;
+    // add in days for leap years
+    for (let y = 2022; y < thisYear; y++) { // FIXME better, this should be since 2019
+        if (isLeapYear(y)) {
+            yearOffset += 1;
+        }
+    }
+
     return doy + yearOffset - 114;
 }
 
@@ -187,8 +195,12 @@ function integerIsGreaterThan(number, min) {
 
 // https://stackoverflow.com/questions/8619879/javascript-calculate-the-day-of-the-year-1-366
 /* eslint-disable */
-function isLeapYear(date) {
+function isDuringLeapYear(date) {
     var year = date.getFullYear();
+    return isLeapYear(year);
+}
+
+function isLeapYear(year) {
     if ((year & 3) != 0) return false;
     return ((year % 100) != 0 || (year % 400) == 0);
 }
@@ -199,9 +211,10 @@ function getDOY(date) {
     var mn = date.getMonth();
     var dn = date.getDate();
     var dayOfYear = dayCount[mn] + dn;
-    if (mn > 1 && isLeapYear(date)) dayOfYear++;
+    if (mn > 1 && isDuringLeapYear(date)) dayOfYear++;
     return dayOfYear;
 };
+
 /* eslint-enable */
 
 module.exports = {
