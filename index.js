@@ -12,9 +12,7 @@ const FileBackups = require('./FileBackups');
 
 const app = express();
 
-FileBackups.recoverInMemoryDatabaseFromFiles();
-InMemoryDatabase.getLeadersArray('ALL', 'hard'); // cache the leaderboard
-InMemoryDatabase.getLeadersArray('ALL', 'normal'); // cache the leaderboard
+const additionalFilesToRecover = FileBackups.recoverInMemoryDatabaseFromFiles();
 
 // InMemoryDatabase.dumpDBToCSV();
 // process.exit();
@@ -95,7 +93,11 @@ if (isProd) {
     const httpsServer = https.createServer(credentials, app);
 
     httpsServer.listen(443);
+    console.log('listening on 443');
 } else {
     const httpServer = http.createServer(app);
     httpServer.listen(8080);
+    console.log('listening on 8080');
 }
+
+FileBackups.asyncContinueRecovery(additionalFilesToRecover);

@@ -7,7 +7,7 @@ const {
 const { addLeaderAwards } = require('./LeaderAwards');
 const { isProd, getNow } = require('./Utilities');
 
-const ALL_TIME_LEADERS_BLACKLIST = ['DDDLLLL.SSSDDDUUUFFFEEERRR'];
+const ALL_TIME_LEADERS_BLACKLIST = ['DDDLLLL.SSSDDDUUUFFFEEERRR']; // TODO rename as deny list
 
 const leadersByDateAndListAndName = {}; // see below for structure
 /*
@@ -170,10 +170,12 @@ function convertLeader(leaderData, includeGuesses) {
 
 function getAllTimeLeaderboard(list, preferCached) {
     if (preferCached && ALL_TIME_LEADERS_BY_LIST[list]) {
-        return ALL_TIME_LEADERS_BY_LIST[list];
+        return ALL_TIME_LEADERS_BY_LIST[list] || [];
     }
 
-    for (const date in leadersByDateAndListAndName) {
+    const dates = Object.keys(leadersByDateAndListAndName);
+    dates.sort();
+    dates.forEach((date) => {
         let leaders = getLeadersForKeys(date, list);
         leaders = sanitizeLeaders(leaders);
 
@@ -187,7 +189,7 @@ function getAllTimeLeaderboard(list, preferCached) {
         // if (shouldPurgeOldLeaders) {
         //     delete leadersByDateAndListAndName[date];
         // }
-    }
+    });
 
     const allTimeLeaders = getAllTimeLeadersFromCache(list);
     calculateFinalStatistics(allTimeLeaders);
