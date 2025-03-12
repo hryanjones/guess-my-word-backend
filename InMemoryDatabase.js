@@ -256,13 +256,11 @@ function appendLeaderStatistics(allTimeLeaderData, {
 
 function getAllTimeLeadersFromCache(list) {
     const cachedLeadersByName = allTimeLeadersCacheDataByListAndName[list];
-    const twoWeeksAgo = new Date(getNow() - twoWeeksInMilliseconds);
     const allTimeLeaders = {};
     for (const name in cachedLeadersByName) {
         const leader = cachedLeadersByName[name];
         if (leader.playCount >= MIN_PLAY_COUNT_FOR_ALL_TIME_LEADERBOARD
-            && !ALL_TIME_LEADERS_BLACKLIST.includes(name)
-            && leader.updatedTo >= twoWeeksAgo) {
+            && !ALL_TIME_LEADERS_BLACKLIST.includes(name)) {
             allTimeLeaders[name] = { ...leader };
         }
     }
