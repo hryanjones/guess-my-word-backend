@@ -214,7 +214,7 @@ function instantiateAllTimeLeader() {
         timeList: [], // int[]
         bestTime: Infinity, // int
         numberOfGuessesList: [], // int
-        updatedTo: '', // date
+        mostRecentSubmitDate: '', // date
     };
 }
 
@@ -223,9 +223,9 @@ function appendLeaderStatistics(allTimeLeaderData, {
     numberOfGuesses,
     submitTime,
 }) {
-    const { updatedTo } = allTimeLeaderData;
+    const { mostRecentSubmitDate } = allTimeLeaderData;
     submitTime = new Date(submitTime);
-    if (updatedTo && submitTime <= updatedTo) {
+    if (mostRecentSubmitDate && submitTime <= mostRecentSubmitDate) {
         return; // this record is already stored, don't duplicate
     }
 
@@ -251,7 +251,7 @@ function appendLeaderStatistics(allTimeLeaderData, {
     if (!allTimeLeaderData.firstSubmitDate || submitTime < allTimeLeaderData.firstSubmitDate) {
         allTimeLeaderData.firstSubmitDate = floorDate(submitTime);
     }
-    allTimeLeaderData.updatedTo = submitTime;
+    allTimeLeaderData.mostRecentSubmitDate = submitTime;
 }
 
 function getAllTimeLeadersFromCache(list) {
@@ -275,8 +275,6 @@ function calculateFinalStatistics(leaders) {
     const now = floorDate(getNow());
     for (const name in leaders) {
         const leader = leaders[name];
-
-        delete leader.updatedTo;
 
         leader.numberOfGuessesMedian = getFlooredMedian(leader.numberOfGuessesList);
         delete leader.numberOfGuessesList;
