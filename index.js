@@ -1,5 +1,4 @@
 const express = require('express');
-const expressLogging = require('express-logging');
 const https = require('https');
 const http = require('http');
 const bodyParser = require('body-parser');
@@ -17,7 +16,22 @@ const additionalFilesToRecover = FileBackups.recoverInMemoryDatabaseFromFiles();
 // InMemoryDatabase.dumpDBToCSV();
 // process.exit();
 
-app.use(expressLogging(console));
+function requestLoggingMiddleware(req, res, next) {
+    const startTime = Date.now();
+    const requestId = Math.random().toString(16).slice(2, 6);
+    const userAgent = (req.get('user-agent') || '-').slice(0, 80);
+
+    console.log(`${new Date().toISOString()} [${requestId}] Request from ${req.ip}: ${req.method} ${req.originalUrl} UA: "${userAgent}"`);
+
+    res.on('finish', () => {
+        const duration = Date.now() - startTime;
+        console.log(`${new Date().toISOString()} [${requestId}] Response with status ${res.statusCode} in ${duration} ms.`);
+    });
+
+    next();
+}
+
+app.use(requestLoggingMiddleware);
 
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');

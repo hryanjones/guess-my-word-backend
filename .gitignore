@@ -1,3 +1,8 @@
+*accessKeys*
+*.gpg
+cron.log
+serverlog*
+ec2.hryanjones.com
 node_modules
 backupLeaderboards
 BAD_NAMES.json
