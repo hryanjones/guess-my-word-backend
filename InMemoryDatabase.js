@@ -34,6 +34,7 @@ const MIN_PLAY_COUNT_FOR_ALL_TIME_LEADERBOARD = 4;
 const THAT_GUY_NAME = 'THAT GUY 🤦‍♀️';
 
 const ALL_TIME_LEADERS_BY_LIST = {};
+const allTimeCacheFullyInitialized = { normal: false, hard: false };
 
 const LIMIT_FOR_FIRST_DAY_HIDING = 3;
 const LIMIT_FOR_ALL_TIME_HIDING = 7;
@@ -97,13 +98,17 @@ function addLeaderToDatabase(date, wordlist, name, data) {
     if (leaders[name] && name !== THAT_GUY_NAME) return `Sorry, "${name}" is already taken today. Please choose another name.`;
     Object.freeze(data); // try to prevent accidental mutations of in memory database
     leaders[name] = data;
+    if (allTimeCacheFullyInitialized[wordlist]) {
+        updateAllTimeLeadersCache(wordlist, name, { ...data, numberOfGuesses: data.guesses.length });
+        delete ALL_TIME_LEADERS_BY_LIST[wordlist]; // invalidate final result so stats are recomputed next request
+    }
     return '';
 }
 
 function getLeadersArray(date, list, name, key) {
     let leaders;
     const type = date === 'ALL' ? 'allTime' : 'normal';
-    const allTimeLeaders = getAllTimeLeaderboard(list, /* prefer cached if */ type === 'normal');
+    const allTimeLeaders = getAllTimeLeaderboard(list);
     if (type === 'allTime') {
         leaders = allTimeLeaders;
         const now = getNow();
@@ -168,31 +173,28 @@ function convertLeader(leaderData, includeGuesses) {
     }
 }
 
-function getAllTimeLeaderboard(list, preferCached) {
-    if (preferCached && ALL_TIME_LEADERS_BY_LIST[list]) {
-        return ALL_TIME_LEADERS_BY_LIST[list] || [];
+function getAllTimeLeaderboard(list) {
+    if (ALL_TIME_LEADERS_BY_LIST[list]) {
+        return ALL_TIME_LEADERS_BY_LIST[list];
     }
 
-    const dates = Object.keys(leadersByDateAndListAndName);
-    dates.sort();
-    dates.forEach((date) => {
-        let leaders = getLeadersForKeys(date, list);
-        leaders = sanitizeLeaders(leaders);
+    if (!allTimeCacheFullyInitialized[list]) {
+        const dates = Object.keys(leadersByDateAndListAndName);
+        dates.sort();
+        dates.forEach((date) => {
+            let leaders = getLeadersForKeys(date, list);
+            leaders = sanitizeLeaders(leaders);
 
-        for (const leaderName in leaders) {
-            const leaderData = leaders[leaderName];
-            updateAllTimeLeadersCache(list, leaderName, leaderData);
-        }
-
-        // need to recover memory
-        // const shouldPurgeOldLeaders = new Date(date) < getEpochTimeForLeaderPurging();
-        // if (shouldPurgeOldLeaders) {
-        //     delete leadersByDateAndListAndName[date];
-        // }
-    });
+            for (const leaderName in leaders) {
+                updateAllTimeLeadersCache(list, leaderName, leaders[leaderName]);
+            }
+        });
+        allTimeCacheFullyInitialized[list] = true;
+    }
 
     const allTimeLeaders = getAllTimeLeadersFromCache(list);
     calculateFinalStatistics(allTimeLeaders);
+    ALL_TIME_LEADERS_BY_LIST[list] = allTimeLeaders;
     return allTimeLeaders;
 }
 
