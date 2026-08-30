@@ -33,15 +33,23 @@ function requestLoggingMiddleware(req, res, next) {
 
 app.use(requestLoggingMiddleware);
 
+// CORS: allow only the game's own front-end origin(s).
+const ALLOWED_ORIGINS = new Set([
+    'https://hryanjones.com',
+    'https://www.hryanjones.com',
+]);
+
 app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    // res.header('Access-Control-Allow-Origin', 'https://hryanjones.com');
+    const { origin } = req.headers;
+    if (ALLOWED_ORIGINS.has(origin)) {
+        res.header('Access-Control-Allow-Origin', origin);
+        res.header('Vary', 'Origin');
+    }
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
     next();
 });
 
 app.use(bodyParser.json());
-
 
 app.get('/', (req, res) => res.status(201).send());
 
@@ -101,8 +109,14 @@ app.post('/leaderboard/:timezonelessDate/wordlist/:wordlist', (req, res) => {
 if (isProd) {
     // const hostname = 'home.hryanjones.com';
     const hostname = 'ec2.hryanjones.com';
-    const privateKey = fs.readFileSync(`/etc/letsencrypt/live/${hostname}/privkey.pem`, 'utf8');
-    const certificate = fs.readFileSync(`/etc/letsencrypt/live/${hostname}/fullchain.pem`, 'utf8');
+    // When run under systemd as a non-root user, the TLS files are supplied via
+    // LoadCredential in $CREDENTIALS_DIRECTORY (readable only by this service).
+    // Fall back to the letsencrypt path for the legacy root launcher.
+    const credentialsDir = process.env.CREDENTIALS_DIRECTORY;
+    const privkeyPath = credentialsDir ? `${credentialsDir}/privkey.pem` : `/etc/letsencrypt/live/${hostname}/privkey.pem`;
+    const fullchainPath = credentialsDir ? `${credentialsDir}/fullchain.pem` : `/etc/letsencrypt/live/${hostname}/fullchain.pem`;
+    const privateKey = fs.readFileSync(privkeyPath, 'utf8');
+    const certificate = fs.readFileSync(fullchainPath, 'utf8');
     const credentials = { key: privateKey, cert: certificate };
     const httpsServer = https.createServer(credentials, app);
 
